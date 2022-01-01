@@ -1,3 +1,5 @@
 {
-    "board": "arduino:samd:nano_33_iot"
+    "board": "arduino:samd:nano_33_iot",
+    "port": "/dev/ttyACM19",
+    "sketch": "wifi_setup_functions.ino"
 }

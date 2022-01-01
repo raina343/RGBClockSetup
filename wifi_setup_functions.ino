@@ -10,17 +10,12 @@
 #include "RTClib.h"
 
 /////////TODO LIST /////
-// 1. need to figure out a way to retry the NTP connection if it fails (which
-// it seems to do alot) - maybe fixed?
-// 2. need to figure out why the http server stops responding if say the SSID
-// is wrong. - maybe fixed.  not the best solution in the world
-// 3. sort out refreshing the clock twice a day (may be ok with the DS3231
-// keeping the time, but we'll see.
+// 1. need to figure out a way to retry the NTP connection if it fails (which it seems to do alot) - maybe fixed?
+// 2. need to figure out why the http server stops responding if say the SSID is wrong. - maybe fixed.  not the best solution in the world
+// 3. sort out refreshing the clock twice a day (may be ok with the DS3231 keeping the time, but we'll see.
 // 4. Add software reset // worked once... very odd
-// 5. Make sure all debug states are properly displayed via pixels and document
-// those
-// 6. make sure the temperature supports negative values and upto 3 digits (so
-// basically -99 to +999
+// 5. Make sure all debug states are properly displayed via pixels and document those
+// 6. make sure the temperature supports negative values and upto 3 digits (so basically -99 to +999
 // 7. add ability to prevent dimming of display
 // 8. add option to set brightness levels manually if dimming is turned off
 
@@ -29,8 +24,7 @@ RTC_DS3231 rtc;
 unsigned int localPort = 2390;  // local port to listen for UDP packets
 IPAddress timeServer(129, 6, 15, 28);
 const int NTP_PACKET_SIZE = 48;      // NTP timestamp is in the first 48 bytes of the message
-byte packetBuffer[NTP_PACKET_SIZE];  // buffer to hold incoming and outgoing
-    // packets
+byte packetBuffer[NTP_PACKET_SIZE];  // buffer to hold incoming and outgoing packets
 WiFiUDP Udp;
 #define LED_PIN 4
 #define LED_COUNT 58
@@ -65,9 +59,8 @@ FlashStorage(my_flash_store, Credentials);
 Credentials owner;
 Credentials owner2;
 
-TimeChangeRule usEDT = {"EDT", Second, Sun,
-                        Mar, 2, -240};                     // EDT = UTC -4 hours
-TimeChangeRule usEST = {"EST", First, Sun, Nov, 2, -300};  // EST = UTC -5 hours
+TimeChangeRule usEDT = {"EDT", Second, Sun, Mar, 2, -240};  // Eastern Daylight Time = UTC - 4 hours
+TimeChangeRule usEST = {"EST", First, Sun, Nov, 2, -300};   // Eastern Standard Time = UTC - 5 hours
 TimeChangeRule usMDT = {"MDT", Second, Sun, Mar, 2, -360};
 TimeChangeRule usMST = {"MST", First, Sun, Nov, 2, -420};
 TimeChangeRule usCDT = {"CDT", Second, Sun, Mar, 2, -300};
@@ -81,12 +74,15 @@ Timezone usMT(usMDT, usMST);
 
 void setup() {
     Serial.begin(9600);
+
     //  while (!Serial) {}
     owner = my_flash_store.read();
+
     strip.begin();  // INITIALIZE NeoPixel strip object (REQUIRED)
     strip.show();   // Turn OFF all pixels ASAP
     strip.clear();
     strip.setBrightness(150);
+
     digitalWrite(Reset_PIN, HIGH);
     delay(200);
     pinMode(Reset_PIN, OUTPUT);
@@ -110,7 +106,6 @@ void setup() {
         delay(10000);
         server.begin();
         printWiFiStatus();
-
         Serial.println("Access Point Web Server");
         if (WiFi.status() == WL_NO_MODULE) {
             Serial.println("Communication with WiFi module failed!");
@@ -135,6 +130,7 @@ void setup() {
         strip.setPixelColor(51, strip.Color(255, 255, 0));
         strip.setPixelColor(36, strip.Color(255, 255, 0));
         strip.setPixelColor(37, strip.Color(255, 255, 0));
+
         strip.setPixelColor(6, strip.Color(255, 255, 0));
         strip.setPixelColor(7, strip.Color(255, 255, 0));
         strip.setPixelColor(20, strip.Color(255, 255, 0));
@@ -145,6 +141,7 @@ void setup() {
         strip.setPixelColor(10, strip.Color(255, 150, 0));
         strip.setPixelColor(24, strip.Color(255, 150, 0));
         strip.setPixelColor(25, strip.Color(255, 150, 0));
+
         strip.setPixelColor(40, strip.Color(255, 150, 0));
         strip.setPixelColor(41, strip.Color(255, 150, 0));
         strip.setPixelColor(54, strip.Color(255, 150, 0));
@@ -182,8 +179,7 @@ void setup() {
             strip.show();
             Serial.print("Attempting to connect to SSID: ");
             Serial.println(ssid);
-            // Connect to WPA/WPA2 network. Change this line if using open or WEP
-            // network:
+            // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
             status = WiFi.begin(ssid, pass);
             // wait 10 seconds for connection:
             delay(10000);
@@ -193,9 +189,11 @@ void setup() {
         strip.setPixelColor(29, strip.Color(0, 255, 0));
         strip.show();
         printWifiStatus();
+
         Serial.println("\nStarting connection to server (first run)...");
         Udp.begin(localPort);
         sendNTPpacket(timeServer);  // send an NTP packet to a time server
+
         delay(3000);
         if (Udp.parsePacket()) {
             Serial.println("packet received");
@@ -203,8 +201,7 @@ void setup() {
             strip.setPixelColor(29, strip.Color(0, 0, 255));
             strip.show();
             // We've received a packet, read the data from it
-            Udp.read(packetBuffer,
-                     NTP_PACKET_SIZE);  // read the packet into the buffer
+            Udp.read(packetBuffer, NTP_PACKET_SIZE);  // read the packet into the buffer
             unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
             unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
             unsigned long secsSince1900 = highWord << 16 | lowWord;
@@ -216,13 +213,14 @@ void setup() {
             rtc.clearAlarm(1);
             rtc.disable32K();
             pinMode(CLOCK_INTERRUPT_PIN, INPUT_PULLUP);
-            attachInterrupt(digitalPinToInterrupt(CLOCK_INTERRUPT_PIN), alarm,
-                            FALLING);
+            attachInterrupt(digitalPinToInterrupt(CLOCK_INTERRUPT_PIN), alarm, FALLING);
             rtc.clearAlarm(1);
             rtc.clearAlarm(2);
             rtc.writeSqwPinMode(DS3231_OFF);
-            rtc.setAlarm1(DateTime(0, 0, 0, 0, 0, 55), DS3231_A1_Second);
             rtc.setAlarm2(rtc.now(), DS3231_A2_PerMinute);
+            rtc.setAlarm1(DateTime(0, 0, 0, 0, 0, 55), DS3231_A1_Second);
+
+            SetTime();
         } else {
             strip.setPixelColor(28, strip.Color(255, 255, 255));
             strip.setPixelColor(29, strip.Color(255, 255, 255));
@@ -249,8 +247,10 @@ void printWiFiStatus() {
 void alarm() {
     if (rtc.alarmFired(1)) {
         Serial.println("Alarm1 Triggered");
+        rtc.clearAlarm(1);
+        rtc.clearAlarm(2);
         if ((String)owner.temp == "on") {
-            // this is for the temperature
+            //      //this is for the temperature
             Serial.println(owner.temp);
             Serial.print("Temperature: ");
             Serial.print(rtc.getTemperature());
@@ -275,10 +275,12 @@ void alarm() {
                 Serial.println(temp2);
                 TempUnits = "C";
             }
-            Serial.println("in temp loop");
+            //      Serial.println("in temp loop");
             outputDigitsTemp(temp1.toInt(), temp2.toInt(), TempUnits);
-            rtc.clearAlarm(1);
-            rtc.clearAlarm(2);
+            //      //      delay(5000);
+            //      //      SetTime();
+            //      rtc.clearAlarm(1);
+            //      rtc.clearAlarm(2);
         }
     } else {
         Serial.println("Alarm1 Triggered2");
@@ -287,9 +289,8 @@ void alarm() {
 }
 void SetTime() {
     /*
-   this is what handles the actual updating of the time.  it's an Alarm
-   interrupt on the RTC.
-*/
+       this is what handles the actual updating of the time.  it's an Alarm interrupt on the RTC.
+    */
     Serial.println("Alarm2 Triggered");
     DateTime now = rtc.now();
 
@@ -299,7 +300,7 @@ void SetTime() {
     char mEST[4];
     char mMST[4];
     char mCST[4];
-    TimeChangeRule* tcr;
+    TimeChangeRule *tcr;
     //    time_t tPST = usPT.toLocal(alarmepoch, &tcr);
 
     char PSTHour[3];
@@ -309,9 +310,7 @@ void SetTime() {
         Serial.println("PST Time Zone...");
         time_t tPST = usPT.toLocal(alarmepoch, &tcr);
         strcpy(mPST, monthShortStr(month(tPST)));
-        sprintf(bufPST, "%.2d:%.2d:%.2d %s %.2d %s %d %s", hour(tPST), minute(tPST),
-                second(tPST), dayShortStr(weekday(tPST)), day(tPST), mPST,
-                year(tPST), tcr->abbrev);
+        sprintf(bufPST, "%.2d:%.2d:%.2d %s %.2d %s %d %s", hour(tPST), minute(tPST), second(tPST), dayShortStr(weekday(tPST)), day(tPST), mPST, year(tPST), tcr->abbrev);
         Serial.println(bufPST);
         sprintf(PSTHour, "%.2d", hour(tPST));
         sprintf(PSTMin, "%.2d", minute(tPST));
@@ -322,9 +321,7 @@ void SetTime() {
         Serial.println("EST Time Zone...");
         time_t tEST = usET.toLocal(alarmepoch, &tcr);
         strcpy(mEST, monthShortStr(month(tEST)));
-        sprintf(bufPST, "%.2d:%.2d:%.2d %s %.2d %s %d %s", hour(tEST), minute(tEST),
-                second(tEST), dayShortStr(weekday(tEST)), day(tEST), mEST,
-                year(tEST), tcr->abbrev);
+        sprintf(bufPST, "%.2d:%.2d:%.2d %s %.2d %s %d %s", hour(tEST), minute(tEST), second(tEST), dayShortStr(weekday(tEST)), day(tEST), mEST, year(tEST), tcr->abbrev);
         Serial.println(bufPST);
         sprintf(PSTHour, "%.2d", hour(tEST));
         sprintf(PSTMin, "%.2d", minute(tEST));
@@ -335,9 +332,7 @@ void SetTime() {
         time_t tCST = usCT.toLocal(alarmepoch, &tcr);
 
         strcpy(mCST, monthShortStr(month(tCST)));
-        sprintf(bufPST, "%.2d:%.2d:%.2d %s %.2d %s %d %s", hour(tCST), minute(tCST),
-                second(tCST), dayShortStr(weekday(tCST)), day(tCST), mCST,
-                year(tCST), tcr->abbrev);
+        sprintf(bufPST, "%.2d:%.2d:%.2d %s %.2d %s %d %s", hour(tCST), minute(tCST), second(tCST), dayShortStr(weekday(tCST)), day(tCST), mCST, year(tCST), tcr->abbrev);
 
         Serial.println(bufPST);
 
@@ -350,9 +345,7 @@ void SetTime() {
         time_t tMST = usMT.toLocal(alarmepoch, &tcr);
 
         strcpy(mMST, monthShortStr(month(tMST)));
-        sprintf(bufPST, "%.2d:%.2d:%.2d %s %.2d %s %d %s", hour(tMST), minute(tMST),
-                second(tMST), dayShortStr(weekday(tMST)), day(tMST), mMST,
-                year(tMST), tcr->abbrev);
+        sprintf(bufPST, "%.2d:%.2d:%.2d %s %.2d %s %d %s", hour(tMST), minute(tMST), second(tMST), dayShortStr(weekday(tMST)), day(tMST), mMST, year(tMST), tcr->abbrev);
 
         Serial.println(bufPST);
 
@@ -360,10 +353,8 @@ void SetTime() {
         sprintf(PSTMin, "%.2d", minute(tMST));
         sprintf(PSTSec, "%.2d", second(tMST));
     }
-    // There may be a better way to do all this, but I don't know what it is. but
-    // since we're driving the digits in different colours, I figured we needed
-    // to drive the digits entirely independently.  so in order to do this, I
-    // need to break the time down into separate digits.
+    // There may be a better way to do all this, but I don't know what it is.  but since we're driving the digits in different colours, I figured we needed
+    // to drive the digits entirely independently.  so in order to do this, I need to break the time down into separate digits.
 
     String PSTHours = String(PSTHour);
     if ((String)owner.twelvehr == "on") {
@@ -391,9 +382,8 @@ void SetTime() {
     String PSTHour2 = String(PSTHour).substring(1);
     rtc.clearAlarm(1);
     rtc.clearAlarm(2);
-    // now that the time's been split up, we can output it all to the digits of
-    // the clock. I'm doing each digit separately.  again as with before, there's
-    // probably way better ways of doing this.
+    // now that the time's been split up, we can output it all to the digits of the clock.
+    // I'm doing each digit separately.  again as with before, there's probably way better ways of doing this.
 
     if ((PSTHour1 == "0") && (PSTHour2 == "0") && (PSTMinute1 == "0") && (PSTMinute2 == "0")) {
         // it's midnight, so re-run the time sync
@@ -404,8 +394,7 @@ void SetTime() {
 
         GetTime();
     }
-    outputDigits(PSTMinute2.toInt(), PSTMinute1.toInt(), PSTHour2.toInt(),
-                 PSTHour1.toInt());
+    outputDigits(PSTMinute2.toInt(), PSTMinute1.toInt(), PSTHour2.toInt(), PSTHour1.toInt());
     // outputDigits (1, 1, 1, 1);
     // outputDigits (2, 2, 2, 2);
     // outputDigits (3, 3, 3, 3);
@@ -425,8 +414,7 @@ void outputDigitsTemp(int digit1, int digit2, String units) {
         {-1, -1, 2, 3, -1, -1, -1, -1, 8, 9, -1, -1, -1, -1},      // 2 //seems ok
         {-1, -1, -1, -1, -1, -1, -1, -1, 8, 9, -1, -1, 12, 13},    // 3
         {0, 1, -1, -1, -1, -1, 6, 7, -1, -1, -1, -1, 12, 13},      // 4
-        {-1, -1, -1, -1, 4, 5, -1, -1, -1, -1, -1, -1, 12,
-         13},                                                      // 5////numbers represent the pixels that are NOT LIT
+        {-1, -1, -1, -1, 4, 5, -1, -1, -1, -1, -1, -1, 12, 13},    // 5////numbers represent the pixels that are NOT LIT
         {-1, -1, -1, -1, 4, 5, -1, -1, -1, -1, -1, -1, -1, -1},    // 6
         {0, 1, -1, -1, -1, -1, -1, -1, 8, 9, 10, 11, 12, 13},      // 7 //seems ok
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},  // 8 //seems ok
@@ -482,8 +470,7 @@ void outputDigits(int digit1, int digit2, int digit3, int digit4) {
         {-1, -1, 2, 3, -1, -1, -1, -1, 8, 9, -1, -1, -1, -1},      // 2 //seems ok
         {-1, -1, -1, -1, -1, -1, -1, -1, 8, 9, -1, -1, 12, 13},    // 3
         {0, 1, -1, -1, -1, -1, 6, 7, -1, -1, -1, -1, 12, 13},      // 4
-        {-1, -1, -1, -1, 4, 5, -1, -1, -1, -1, -1, -1, 12,
-         13},                                                      // 5////numbers represent the pixels that are NOT LIT
+        {-1, -1, -1, -1, 4, 5, -1, -1, -1, -1, -1, -1, 12, 13},    // 5////numbers represent the pixels that are NOT LIT
         {-1, -1, -1, -1, 4, 5, -1, -1, -1, -1, -1, -1, -1, -1},    // 6
         {0, 1, -1, -1, -1, -1, -1, -1, 8, 9, 10, 11, 12, 13},      // 7 //seems ok
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},  // 8 //seems ok
@@ -586,14 +573,11 @@ void loop() {
                         Serial.println(readString);
                         char Buf[250];
                         readString.toCharArray(Buf, 150);
-                        char* token = strtok(Buf, "/?");  // Get everything up to the /if(token) //
-                        // If we got something
+                        char *token = strtok(Buf, "/?");  // Get everything up to the /if(token) // If we got something
                         {
-                            char* name = strtok(NULL,
-                                                "=");  // Get the first name. Use NULL as first
-                            // argument to keep parsing same string
+                            char *name = strtok(NULL, "=");  // Get the first name. Use NULL as first argument to keep parsing same string
                             while (name) {
-                                char* valu = strtok(NULL, "&");
+                                char *valu = strtok(NULL, "&");
                                 if (valu) {
                                     if (String(name) == "?ssid") {
                                         String ssidname = valu;
@@ -735,9 +719,7 @@ void loop() {
                     client.println("cursor: pointer;");
                     client.println("line-height: 1.1;");
                     client.println("background-color: #fff;");
-                    client.println(
-                        "background-image: linear-gradient(to top, "
-                        "#f9f9f9, #fff 33%);");
+                    client.println("background-image: linear-gradient(to top, #f9f9f9, #fff 33%);");
                     client.println("}");
 
                     client.println(".select select, .select::after {");
@@ -750,8 +732,7 @@ void loop() {
                     client.println("width: 0.8em;");
                     client.println("height: 0.5em;");
                     client.println("background-color: var(--select-arrow);");
-                    client.println(
-                        "-webkit-clip-path: polygon(100% 0%, 0 0%, 50% 100%);");
+                    client.println("-webkit-clip-path: polygon(100% 0%, 0 0%, 50% 100%);");
                     client.println("clip-path: polygon(100% 0%, 0 0%, 50% 100%);");
                     client.println("}");
 
@@ -778,9 +759,7 @@ void loop() {
                     client.println(".select--disabled {");
                     client.println("cursor: not-allowed;");
                     client.println("background-color: #eee;");
-                    client.println(
-                        "background-image: linear-gradient(to top, "
-                        "#ddd, #eee 33%);");
+                    client.println("background-image: linear-gradient(to top, #ddd, #eee 33%);");
                     client.println("}");
 
                     client.println("label {");
@@ -835,9 +814,7 @@ void loop() {
                     client.println("line-height: 1.1;");
                     client.println("background-color: #fff;");
                     client.println("text-align: center;");
-                    client.println(
-                        "background-image: linear-gradient(to top, "
-                        "#f9f9f9, #fff 33%);");
+                    client.println("background-image: linear-gradient(to top, #f9f9f9, #fff 33%);");
                     client.println("}");
 
                     client.println(".formcontent button {");
@@ -856,9 +833,7 @@ void loop() {
                     client.println("line-height: 1.1;");
                     client.println("background-color: #fff;");
                     client.println("text-align: center;");
-                    client.println(
-                        "background-image: linear-gradient(to top, "
-                        "#f9f9f9, #fff 33%);");
+                    client.println("background-image: linear-gradient(to top, #f9f9f9, #fff 33%);");
                     client.println("}");
 
                     client.println("html {");
@@ -919,38 +894,22 @@ void loop() {
 
                     client.println(".slidecontainer {width: 100%;}");
 
-                    client.println(
-                        ".slider {-webkit-appearance: none;width: 100%;height: "
-                        "25px;background: #d3d3d3;outline: none;opacity: "
-                        "0.7;-webkit-transition: .2s;transition: opacity .2s;}");
+                    client.println(".slider {-webkit-appearance: none;width: 100%;height: 25px;background: #d3d3d3;outline: none;opacity: 0.7;-webkit-transition: .2s;transition: opacity .2s;}");
 
                     client.println(".slider:hover {opacity: 1;}");
 
-                    client.println(
-                        ".slider::-webkit-slider-thumb {-webkit-appearance: "
-                        "none;appearance: none;width: 25px;height: "
-                        "25px;background: #04AA6D;cursor: pointer;}");
+                    client.println(".slider::-webkit-slider-thumb {-webkit-appearance: none;appearance: none;width: 25px;height: 25px;background: #04AA6D;cursor: pointer;}");
 
-                    client.println(
-                        ".slider::-moz-range-thumb {width: 25px;height: "
-                        "25px;background: #04AA6D;cursor: pointer;}");
+                    client.println(".slider::-moz-range-thumb {width: 25px;height: 25px;background: #04AA6D;cursor: pointer;}");
 
                     client.println("</style>");
 
                     client.println("<header class='container-col'>");
-                    client.println(
-                        "<H1>Enter your SSID, Password below. if I haven't "
-                        "fucked up, "
-                        "after you hit Save, it should reconnect to your main");
+                    client.println("<H1>Enter your SSID, Password below. if I haven't fucked up, after you hit Save, it should reconnect to your main");
                     client.println("Wifi");
-                    client.println(
-                        "and this Wireless Access Point will vanish (if the "
-                        "info entered "
-                        "is correct)<br>You can revisit this setup page");
+                    client.println("and this Wireless Access Point will vanish (if the info entered is correct)<br>You can revisit this setup page");
                     client.println("by");
-                    client.println(
-                        "checking your router or other tools for the clocks "
-                        "new ip address</H1>");
+                    client.println("checking your router or other tools for the clocks new ip address</H1>");
                     client.println("</header>");
                     client.print("<form method='get' action=''>");
                     client.println("<div class='formcontent'>");
@@ -969,15 +928,11 @@ void loop() {
                     client.println("       name='password'");
                     client.println("      value='");
                     client.print(owner.Password);
-                    client.print(
-                        "' placeholder='password' required><label "
-                        "for='password'>Password</label><br>");
+                    client.print("' placeholder='password' required><label for='password'>Password</label><br>");
 
                     client.println("</li>");
                     client.println("<li>");
-                    client.println(
-                        "<label for='ShowTemp'>Show Temperature "
-                        "every 1 minute</label>");
+                    client.println("<label for='ShowTemp'>Show Temperature every 1 minute</label>");
                     client.println("<div class='select'>");
                     client.print("<select name='ShowTemp' id='ShowTemp'>");
                     client.print("<option value='off'>off</option>");
@@ -1073,9 +1028,7 @@ void loop() {
                     client.println("<label for='myrange'>Display Brightness</label>");
 
                     client.println("<div class='slidecontainer'>");
-                    client.println(
-                        "<input type='range' name='range' min='1' "
-                        "max='255' value='");
+                    client.println("<input type='range' name='range' min='1' max='255' value='");
                     client.print(owner.brightness);
 
                     client.println("' class='slider' id='myRange'>");
@@ -1088,9 +1041,7 @@ void loop() {
                     client.println("</li>");
 
                     client.println("<li>");
-                    client.println(
-                        "<button id='Submit' name='Submit' value='Submit' "
-                        "onclick='submit();' type='submit'>Save</button>");
+                    client.println("<button id='Submit' name='Submit' value='Submit' onclick='submit();' type='submit'>Save</button>");
                     client.println("</li>");
                     client.println("</ul>");
                     client.println("</div>");
@@ -1133,7 +1084,7 @@ String validateSSID(Credentials owner) {
 }
 
 // send an NTP request to the time server at the given address
-unsigned long sendNTPpacket(IPAddress& address) {
+unsigned long sendNTPpacket(IPAddress &address) {
     Serial.println("1");
     // set all bytes in the buffer to 0
     memset(packetBuffer, 0, NTP_PACKET_SIZE);
@@ -1225,8 +1176,7 @@ void GetTime() {
         strip.setPixelColor(29, strip.Color(0, 0, 255));
 
         strip.show();
-        Udp.read(packetBuffer,
-                 NTP_PACKET_SIZE);  // read the packet into the buffer
+        Udp.read(packetBuffer, NTP_PACKET_SIZE);  // read the packet into the buffer
         unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
         unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
         unsigned long secsSince1900 = highWord << 16 | lowWord;
