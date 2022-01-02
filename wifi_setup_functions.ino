@@ -30,8 +30,8 @@ int Reset_PIN = 6;
 int lightvalue;
 int pixels[58];
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
-int Sized[] = {18, 6, 15, 15, 12, 15, 18, 9, 21, 18};
-int Sizedoff[] = {3, 15, 6, 6, 9, 6, 3, 12, 0, 3};
+// int Sized[] = {18, 6, 15, 15, 12, 15, 18, 9, 21, 18};
+// int Sizedoff[] = {3, 15, 6, 6, 9, 6, 3, 12, 0, 3};
 char ssid[] = "RainbowClockSetup";  // your network SSID (name)
 char pass[] = "";                   // your network password (use for WPA, or use as key for WEP)
 int keyIndex = 0;                   // your network key Index number (needed only for WEP)
@@ -55,7 +55,6 @@ int WifiSetup = 1;
 FlashStorage(my_flash_store, Credentials);
 Credentials owner;
 Credentials owner2;
-
 TimeChangeRule usEDT = {"EDT", Second, Sun, Mar, 2, -240};  // Eastern Daylight Time = UTC - 4 hours
 TimeChangeRule usEST = {"EST", First, Sun, Nov, 2, -300};   // Eastern Standard Time = UTC - 5 hours
 TimeChangeRule usMDT = {"MDT", Second, Sun, Mar, 2, -360};
@@ -71,28 +70,26 @@ Timezone usMT(usMDT, usMST);
 
 void setup() {
     Serial.begin(9600);
-
-    //  while (!Serial) {}
     owner = my_flash_store.read();
-
     strip.begin();  // INITIALIZE NeoPixel strip object (REQUIRED)
     strip.show();   // Turn OFF all pixels ASAP
     strip.clear();
     strip.setBrightness(150);
-
     digitalWrite(Reset_PIN, HIGH);
     delay(200);
     pinMode(Reset_PIN, OUTPUT);
-
     if (owner.valid == false) {
         status = WiFi.beginAP(ssid);
         if (status != WL_AP_LISTENING) {
-            strip.setPixelColor(50, strip.Color(255, 150, 0));
-            strip.setPixelColor(51, strip.Color(255, 150, 0));
             strip.setPixelColor(6, strip.Color(255, 150, 0));
             strip.setPixelColor(7, strip.Color(255, 150, 0));
             strip.setPixelColor(20, strip.Color(255, 150, 0));
             strip.setPixelColor(21, strip.Color(255, 150, 0));
+            strip.setPixelColor(36, strip.Color(255, 150, 0));
+            strip.setPixelColor(37, strip.Color(255, 150, 0));
+            strip.setPixelColor(50, strip.Color(255, 150, 0));
+            strip.setPixelColor(51, strip.Color(255, 150, 0));
+            ;
             strip.show();
             // 48 and 49
             Serial.println("Creating access point failed");
@@ -107,12 +104,14 @@ void setup() {
         if (WiFi.status() == WL_NO_MODULE) {
             Serial.println("Communication with WiFi module failed!");
             // Failure of Wifi Module.  all top rows are red
-            strip.setPixelColor(50, strip.Color(255, 0, 0));
-            strip.setPixelColor(51, strip.Color(255, 0, 0));
             strip.setPixelColor(6, strip.Color(255, 0, 0));
             strip.setPixelColor(7, strip.Color(255, 0, 0));
             strip.setPixelColor(20, strip.Color(255, 0, 0));
             strip.setPixelColor(21, strip.Color(255, 0, 0));
+            strip.setPixelColor(36, strip.Color(255, 0, 0));
+            strip.setPixelColor(37, strip.Color(255, 0, 0));
+            strip.setPixelColor(50, strip.Color(255, 0, 0));
+            strip.setPixelColor(51, strip.Color(255, 0, 0));
             strip.show();
             while (true)
                 ;
@@ -127,7 +126,6 @@ void setup() {
         strip.setPixelColor(51, strip.Color(255, 255, 0));
         strip.setPixelColor(36, strip.Color(255, 255, 0));
         strip.setPixelColor(37, strip.Color(255, 255, 0));
-
         strip.setPixelColor(6, strip.Color(255, 255, 0));
         strip.setPixelColor(7, strip.Color(255, 255, 0));
         strip.setPixelColor(20, strip.Color(255, 255, 0));
@@ -138,7 +136,6 @@ void setup() {
         strip.setPixelColor(10, strip.Color(255, 150, 0));
         strip.setPixelColor(24, strip.Color(255, 150, 0));
         strip.setPixelColor(25, strip.Color(255, 150, 0));
-
         strip.setPixelColor(40, strip.Color(255, 150, 0));
         strip.setPixelColor(41, strip.Color(255, 150, 0));
         strip.setPixelColor(54, strip.Color(255, 150, 0));
@@ -186,11 +183,9 @@ void setup() {
         strip.setPixelColor(29, strip.Color(0, 255, 0));
         strip.show();
         printWifiStatus();
-
         Serial.println("\nStarting connection to server (first run)...");
         Udp.begin(localPort);
         sendNTPpacket(timeServer);  // send an NTP packet to a time server
-
         delay(3000);
         if (Udp.parsePacket()) {
             Serial.println("packet received");
@@ -216,7 +211,6 @@ void setup() {
             rtc.writeSqwPinMode(DS3231_OFF);
             rtc.setAlarm2(rtc.now(), DS3231_A2_PerMinute);
             rtc.setAlarm1(DateTime(0, 0, 0, 0, 0, 55), DS3231_A1_Second);
-
             SetTime();
         } else {
             strip.setPixelColor(28, strip.Color(255, 255, 255));
@@ -230,12 +224,10 @@ void printWiFiStatus() {
     // print the SSID of the network you're attached to:
     Serial.print("SSID: ");
     Serial.println(WiFi.SSID());
-
     // print your WiFi shield's IP address:
     IPAddress ip = WiFi.localIP();
     Serial.print("IP Address: ");
     Serial.println(ip);
-
     // print where to go in a browser:
     Serial.print("To see this page in action, open a browser to http://");
     Serial.println(ip);
@@ -247,11 +239,7 @@ void alarm() {
         rtc.clearAlarm(1);
         rtc.clearAlarm(2);
         if ((String)owner.temp == "on") {
-            //      //this is for the temperature
-
-            String TempUnits = "CF";
-
-            //   int Temperature = rtc.getTemperature();
+            String TempUnits = "C";
             int Temperature = 45;
             if ((String)owner.tempUnits == "F") {
                 TempUnits = "F";
@@ -259,36 +247,6 @@ void alarm() {
                 TempUnits = "C";
             }
             outputDigitsTemp(rtc.getTemperature(), TempUnits);
-            //      Serial.println(owner.temp);
-            //      Serial.print("Temperature: ");
-            //      Serial.print(rtc.getTemperature());
-            //      Serial.println(" C");
-            //      Serial.println(owner.tempUnits);
-            //      String temp1 ;
-            //      String temp2;
-            //      String TempUnits;
-            //      if ((String)owner.tempUnits == "F") {
-            //        Serial.println("CaveMan Temperature");
-            //        int Temperature = rtc.getTemperature();
-            //        int Temperature2 = (Temperature * 1.8) + 32;
-            //        temp1 = String(Temperature2).substring(0, 1);
-            //        temp2 = String(Temperature2).substring(1, 2);
-            //        Serial.println(temp1);
-            //        Serial.println(temp2);
-            //        TempUnits = "F";
-            //      } else {
-            //        temp1 = String(rtc.getTemperature()).substring(0, 1);
-            //        temp2 = String(rtc.getTemperature()).substring(1, 2);
-            //        Serial.println(temp1);
-            //        Serial.println(temp2);
-            //        TempUnits = "C";
-            //      }
-            //      Serial.println("in temp loop");
-            // outputDigitsTemp(temp1.toInt(), temp2.toInt(), TempUnits);
-            //      //      delay(5000);
-            //      //      SetTime();
-            //      rtc.clearAlarm(1);
-            //      rtc.clearAlarm(2);
         }
     } else {
         Serial.println("Alarm1 Triggered2");
@@ -301,7 +259,6 @@ void SetTime() {
     */
     Serial.println("Alarm2 Triggered");
     DateTime now = rtc.now();
-
     int alarmepoch = now.unixtime();
     char bufPST[40];
     char mPST[4];
@@ -309,8 +266,6 @@ void SetTime() {
     char mMST[4];
     char mCST[4];
     TimeChangeRule *tcr;
-    //    time_t tPST = usPT.toLocal(alarmepoch, &tcr);
-
     char PSTHour[3];
     char PSTMin[3];
     char PSTSec[3];
@@ -338,12 +293,9 @@ void SetTime() {
     if ((String)owner.timezone == "CST") {
         Serial.println("CST Time Zone...");
         time_t tCST = usCT.toLocal(alarmepoch, &tcr);
-
         strcpy(mCST, monthShortStr(month(tCST)));
         sprintf(bufPST, "%.2d:%.2d:%.2d %s %.2d %s %d %s", hour(tCST), minute(tCST), second(tCST), dayShortStr(weekday(tCST)), day(tCST), mCST, year(tCST), tcr->abbrev);
-
         Serial.println(bufPST);
-
         sprintf(PSTHour, "%.2d", hour(tCST));
         sprintf(PSTMin, "%.2d", minute(tCST));
         sprintf(PSTSec, "%.2d", second(tCST));
@@ -351,12 +303,9 @@ void SetTime() {
     if ((String)owner.timezone == "MST") {
         Serial.println("MST Time Zone...");
         time_t tMST = usMT.toLocal(alarmepoch, &tcr);
-
         strcpy(mMST, monthShortStr(month(tMST)));
         sprintf(bufPST, "%.2d:%.2d:%.2d %s %.2d %s %d %s", hour(tMST), minute(tMST), second(tMST), dayShortStr(weekday(tMST)), day(tMST), mMST, year(tMST), tcr->abbrev);
-
         Serial.println(bufPST);
-
         sprintf(PSTHour, "%.2d", hour(tMST));
         sprintf(PSTMin, "%.2d", minute(tMST));
         sprintf(PSTSec, "%.2d", second(tMST));
@@ -403,15 +352,6 @@ void SetTime() {
         GetTime();
     }
     outputDigits(PSTMinute2.toInt(), PSTMinute1.toInt(), PSTHour2.toInt(), PSTHour1.toInt());
-    // outputDigits (1, 1, 1, 1);
-    // outputDigits (2, 2, 2, 2);
-    // outputDigits (3, 3, 3, 3);
-    // outputDigits (4, 4, 4, 4);
-    // outputDigits (5, 5, 5, 5);
-    // outputDigits (6, 6, 6, 6);
-    // outputDigits (7, 7, 7, 7);
-    // outputDigits (8, 8, 8, 8);
-    // outputDigits (9, 9, 9, 9);
 }
 int numdigits(int i) {
     char str[20];
@@ -531,76 +471,7 @@ void outputDigitsTemp(int Temperature, String units) {
         }
     }
 }
-// void outputDigitsTemp(int digit1, int digit2, String units) {
-//
-//   int nums[][14] = {
-//
-//     { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 11, -1, -1}, //0 //seems ok
-//     {0, 1, -1, -1, -1, -1, 6, 7, 8, 9, 10, 11, 12, 13},       //1 //seems ok
-//     { -1, -1, 2, 3, -1, -1, -1, -1, 8, 9, -1, -1, -1, -1},    //2 //seems ok
-//     { -1, -1, -1, -1, -1, -1, -1, -1, 8, 9, -1, -1, 12, 13},  //3
-//     {0, 1, -1, -1, -1, -1, 6, 7, -1, -1, -1, -1, 12, 13},     //4
-//     { -1, -1, -1, -1, 4, 5, -1, -1, -1, -1, -1, -1, 12, 13},  //5////numbers represent the pixels that are NOT LIT
-//     { -1, -1, -1, -1, 4, 5, -1, -1, -1, -1, -1, -1, -1, -1},  //6
-//     {0, 1, -1, -1, -1, -1, -1, -1, 8, 9, 10, 11, 12, 13},     //7 //seems ok
-//     { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}, //8 //seems ok
-//     { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 12, 13}, //9 //seems ok
-//     { -1, -1, 2, 3, 4, 5, -1, -1, -1, -1, 10, 11, -1, -1}, //C (for Temp)
-//     { 0, 1, 2, 3, 4, 5, -1, -1, -1, -1, -1, -1, -1, -1}, // F (for Temp)
-//     { 0, 1, 2, 3, 4, 5,  6, 7, 8, 9, 10, 11, 12, 13}, // all off
-//   };
-//
-//   for (int j = 30; j < 44; j++) { //third digit.. a 7
-//     if (nums[digit2][j - 30] == -1)
-//     {
-//       pixels[j] = -1;
-//     }
-//     else
-//     {
-//
-//       pixels[j] = nums[digit2][j - 30] + 30;
-//     }
-//   }
-//   for (int j = 44; j < 58; j++) { //fourth digit... a 1
-//     if (nums[digit1][j - 44] == -1) {
-//       pixels[j] = -1;
-//     } else {
-//       pixels[j] = nums[digit1][j - 44] + 44;
-//     }
-//   }
-//
-//   pixels[28] = 28; //dots
-//   pixels[29] = 29; // dots
-//   for (int j = 0; j < 14; j++)
-//   { //first digit.  a 3
-//     pixels[j] = nums[12][j];
-//   }
-//   if (units == "F") {
-//     for (int j = 14; j < 28; j++)
-//     { //second digit... a 3
-//       if (nums[11][j - 14] == -1)
-//       {
-//         pixels[j] = -1;
-//       }
-//       else
-//       {
-//         pixels[j] = nums[11][j - 14] + 14;
-//       }
-//     }
-//   } else {
-//     for (int j = 14; j < 28; j++)
-//     { //second digit... a 3
-//       if (nums[10][j - 14] == -1)
-//       {
-//         pixels[j] = -1;
-//       }
-//       else
-//       {
-//         pixels[j] = nums[10][j - 14] + 14;
-//       }
-//     }
-//   }
-// }
+
 void outputDigits(int digit1, int digit2, int digit3, int digit4) {
     int nums[][14] = {
         // 0   1   2   3   4   5   6   7   8   9  10  11  12  13
@@ -1011,6 +882,7 @@ void loop() {
                     client.println("checking your router or other tools for the clocks new ip address</H1>");
                     client.println("</header>");
                     ////  client.print("<form method='get' action=''>");
+                    client.println("<form>");
                     client.println("<div class='formcontent'>");
                     client.println("<ul>");
                     client.println("<Li>");
@@ -1150,6 +1022,7 @@ void loop() {
                     client.println("</li>");
                     client.println("</ul>");
                     client.println("</div>");
+                    client.println("</form>");
                     client.println("<script>");
 
                     client.println("if (document.getElementById('dimmer').value === 'off') {");
