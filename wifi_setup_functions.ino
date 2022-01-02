@@ -78,18 +78,18 @@ void setup() {
     digitalWrite(Reset_PIN, HIGH);
     delay(200);
     pinMode(Reset_PIN, OUTPUT);
-    if (owner.valid == false) {
+    if (owner.valid == false) {  // we get here when there's no saved data.  basically initial setup
         status = WiFi.beginAP(ssid);
-        if (status != WL_AP_LISTENING) {
-            strip.setPixelColor(6, strip.Color(255, 150, 0));
-            strip.setPixelColor(7, strip.Color(255, 150, 0));
-            strip.setPixelColor(20, strip.Color(255, 150, 0));
-            strip.setPixelColor(21, strip.Color(255, 150, 0));
-            strip.setPixelColor(36, strip.Color(255, 150, 0));
-            strip.setPixelColor(37, strip.Color(255, 150, 0));
-            strip.setPixelColor(50, strip.Color(255, 150, 0));
-            strip.setPixelColor(51, strip.Color(255, 150, 0));
-            ;
+        if (status != WL_AP_LISTENING) {  // WAP couldn't start.  Top row pinkish
+            strip.setPixelColor(6, strip.Color(255, 75, 250));
+            strip.setPixelColor(7, strip.Color(255, 75, 250));
+            strip.setPixelColor(20, strip.Color(255, 75, 250));
+            strip.setPixelColor(21, strip.Color(255, 75, 250));
+            strip.setPixelColor(36, strip.Color(255, 75, 250));
+            strip.setPixelColor(37, strip.Color(255, 75, 250));
+            strip.setPixelColor(50, strip.Color(255, 75, 250));
+            strip.setPixelColor(51, strip.Color(255, 75, 250));
+
             strip.show();
             // 48 and 49
             Serial.println("Creating access point failed");
@@ -122,100 +122,162 @@ void setup() {
         }
         Serial.print("Creating access point named: ");
         Serial.println(ssid);
-        strip.setPixelColor(50, strip.Color(255, 255, 0));
-        strip.setPixelColor(51, strip.Color(255, 255, 0));
-        strip.setPixelColor(36, strip.Color(255, 255, 0));
-        strip.setPixelColor(37, strip.Color(255, 255, 0));
+        // WAP Started - top row yellow
         strip.setPixelColor(6, strip.Color(255, 255, 0));
         strip.setPixelColor(7, strip.Color(255, 255, 0));
         strip.setPixelColor(20, strip.Color(255, 255, 0));
         strip.setPixelColor(21, strip.Color(255, 255, 0));
+        strip.setPixelColor(36, strip.Color(255, 255, 0));
+        strip.setPixelColor(37, strip.Color(255, 255, 0));
+        strip.setPixelColor(50, strip.Color(255, 255, 0));
+        strip.setPixelColor(51, strip.Color(255, 255, 0));
         strip.show();
     } else {
-        strip.setPixelColor(11, strip.Color(255, 150, 0));
-        strip.setPixelColor(10, strip.Color(255, 150, 0));
-        strip.setPixelColor(24, strip.Color(255, 150, 0));
-        strip.setPixelColor(25, strip.Color(255, 150, 0));
-        strip.setPixelColor(40, strip.Color(255, 150, 0));
-        strip.setPixelColor(41, strip.Color(255, 150, 0));
-        strip.setPixelColor(54, strip.Color(255, 150, 0));
-        strip.setPixelColor(55, strip.Color(255, 150, 0));
+        // we have saved credentials, so we start up normally. middle row green
+        strip.setPixelColor(11, strip.Color(0, 150, 0));
+        strip.setPixelColor(10, strip.Color(0, 150, 0));
+        strip.setPixelColor(24, strip.Color(0, 150, 0));
+        strip.setPixelColor(25, strip.Color(0, 150, 0));
+        strip.setPixelColor(40, strip.Color(0, 150, 0));
+        strip.setPixelColor(41, strip.Color(0, 150, 0));
+        strip.setPixelColor(54, strip.Color(0, 150, 0));
+        strip.setPixelColor(55, strip.Color(0, 150, 0));
         strip.show();
         Serial.print("Stored SSID:");
         Serial.println((String)owner.wifissid);
         Serial.println((String)owner.brightness);
         WifiSetup = 0;
-        validateSSID(owner);
-        delay(5000);
-        server.begin();
-        strip.setPixelColor(28, strip.Color(255, 0, 0));
-        strip.setPixelColor(29, strip.Color(255, 0, 0));
-        strip.show();
-        if (WiFi.status() == WL_NO_MODULE) {
-            strip.setPixelColor(50, strip.Color(255, 0, 0));
-            strip.setPixelColor(51, strip.Color(255, 0, 0));
+        String returnedip = validateSSID(owner);
+        if (returnedip == "0.0.0.0") {
             strip.setPixelColor(6, strip.Color(255, 0, 0));
             strip.setPixelColor(7, strip.Color(255, 0, 0));
             strip.setPixelColor(20, strip.Color(255, 0, 0));
             strip.setPixelColor(21, strip.Color(255, 0, 0));
+            strip.setPixelColor(36, strip.Color(255, 0, 0));
+            strip.setPixelColor(37, strip.Color(255, 0, 0));
+            strip.setPixelColor(50, strip.Color(255, 0, 0));
+            strip.setPixelColor(51, strip.Color(255, 0, 0));
+
+            strip.setPixelColor(0, strip.Color(255, 0, 0));
+            strip.setPixelColor(1, strip.Color(255, 0, 0));
+            strip.setPixelColor(14, strip.Color(255, 0, 0));
+            strip.setPixelColor(15, strip.Color(255, 0, 0));
+            strip.setPixelColor(30, strip.Color(255, 0, 0));
+            strip.setPixelColor(31, strip.Color(255, 0, 0));
+            strip.setPixelColor(44, strip.Color(255, 0, 0));
+            strip.setPixelColor(45, strip.Color(255, 0, 0));
+
             strip.show();
-            Serial.println("Communication with WiFi module failed!");
-            while (true)
-                ;
-        }
-        String fv = WiFi.firmwareVersion();
-        if (fv < WIFI_FIRMWARE_LATEST_VERSION) {
-            Serial.println("Please upgrade the firmware");
-        }
-        while (status != WL_CONNECTED) {
-            strip.setPixelColor(28, strip.Color(255, 150, 0));
-            strip.setPixelColor(29, strip.Color(255, 150, 0));
-            strip.show();
-            Serial.print("Attempting to connect to SSID: ");
-            Serial.println(ssid);
-            // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
-            status = WiFi.begin(ssid, pass);
-            // wait 10 seconds for connection:
-            delay(10000);
-        }
-        Serial.println("Connected to WiFi");
-        strip.setPixelColor(28, strip.Color(0, 255, 0));
-        strip.setPixelColor(29, strip.Color(0, 255, 0));
-        strip.show();
-        printWifiStatus();
-        Serial.println("\nStarting connection to server (first run)...");
-        Udp.begin(localPort);
-        sendNTPpacket(timeServer);  // send an NTP packet to a time server
-        delay(3000);
-        if (Udp.parsePacket()) {
-            Serial.println("packet received");
-            strip.setPixelColor(28, strip.Color(0, 0, 255));
-            strip.setPixelColor(29, strip.Color(0, 0, 255));
-            strip.show();
-            // We've received a packet, read the data from it
-            Udp.read(packetBuffer, NTP_PACKET_SIZE);  // read the packet into the buffer
-            unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
-            unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
-            unsigned long secsSince1900 = highWord << 16 | lowWord;
-            const unsigned long seventyYears = 2208988800UL;
-            unsigned long epoch = secsSince1900 - seventyYears;
-            rtc.begin();  // initialize RTC
-            rtc.disable32K();
-            rtc.adjust(DateTime(epoch + 1));
-            rtc.clearAlarm(1);
-            rtc.disable32K();
-            pinMode(CLOCK_INTERRUPT_PIN, INPUT_PULLUP);
-            attachInterrupt(digitalPinToInterrupt(CLOCK_INTERRUPT_PIN), alarm, FALLING);
-            rtc.clearAlarm(1);
-            rtc.clearAlarm(2);
-            rtc.writeSqwPinMode(DS3231_OFF);
-            rtc.setAlarm2(rtc.now(), DS3231_A2_PerMinute);
-            rtc.setAlarm1(DateTime(0, 0, 0, 0, 0, 55), DS3231_A1_Second);
-            SetTime();
+            Serial.println("Wifi Failed");
+            status = WiFi.beginAP(ssid);
+
+            printWiFiStatus();
+            delay(5000);
         } else {
-            strip.setPixelColor(28, strip.Color(255, 255, 255));
-            strip.setPixelColor(29, strip.Color(255, 255, 255));
+            // validateSSID(owner);
+            delay(5000);
+            server.begin();
+            // strip.setPixelColor(28, strip.Color(255, 0, 0));
+            // strip.setPixelColor(29, strip.Color(255, 0, 0));
+            // strip.show();
+            if (WiFi.status() == WL_NO_MODULE) {  // module failed.  middle row red
+                strip.setPixelColor(10, strip.Color(255, 0, 0));
+                strip.setPixelColor(11, strip.Color(255, 0, 0));
+                strip.setPixelColor(24, strip.Color(255, 0, 0));
+                strip.setPixelColor(25, strip.Color(255, 0, 0));
+                strip.setPixelColor(40, strip.Color(255, 0, 0));
+                strip.setPixelColor(41, strip.Color(255, 0, 0));
+                strip.setPixelColor(54, strip.Color(255, 0, 0));
+                strip.setPixelColor(55, strip.Color(255, 0, 0));
+                strip.show();
+                Serial.println("Communication with WiFi module failed!");
+                while (true)
+                    ;
+            }
+            String fv = WiFi.firmwareVersion();
+            if (fv < WIFI_FIRMWARE_LATEST_VERSION) {
+                Serial.println("Please upgrade the firmware");
+            }
+            while (status != WL_CONNECTED) {  // Wifi is disconnected, so start the connection process
+                // lets turn the bottom row green too
+                strip.setPixelColor(1, strip.Color(0, 150, 0));
+                strip.setPixelColor(0, strip.Color(0, 150, 0));
+                strip.setPixelColor(14, strip.Color(0, 150, 0));
+                strip.setPixelColor(15, strip.Color(0, 150, 0));
+                strip.setPixelColor(30, strip.Color(0, 150, 0));
+                strip.setPixelColor(31, strip.Color(0, 150, 0));
+                strip.setPixelColor(44, strip.Color(0, 150, 0));
+                strip.setPixelColor(45, strip.Color(0, 150, 0));
+                strip.show();
+                Serial.print("Attempting to connect to SSID: ");
+                Serial.println(ssid);
+                // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
+                status = WiFi.begin(ssid, pass);
+                // wait 10 seconds for connection:
+                delay(10000);
+            }
+            Serial.println("Connected to WiFi");
+            strip.setPixelColor(28, strip.Color(0, 255, 0));
+            strip.setPixelColor(29, strip.Color(0, 255, 0));
             strip.show();
+            printWifiStatus();
+            Serial.println("\nStarting connection to server (first run)...");
+            Udp.begin(localPort);
+            sendNTPpacket(timeServer);  // send an NTP packet to a time server
+            delay(3000);
+            if (Udp.parsePacket()) {
+                Serial.println("packet received");
+                strip.setPixelColor(28, strip.Color(0, 0, 255));
+                strip.setPixelColor(29, strip.Color(0, 0, 255));
+                strip.show();
+                // We've received a packet, read the data from it
+                Udp.read(packetBuffer, NTP_PACKET_SIZE);  // read the packet into the buffer
+                unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
+                unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
+                unsigned long secsSince1900 = highWord << 16 | lowWord;
+                const unsigned long seventyYears = 2208988800UL;
+                unsigned long epoch = secsSince1900 - seventyYears;
+                rtc.begin();  // initialize RTC
+                rtc.disable32K();
+                rtc.adjust(DateTime(epoch + 1));
+                rtc.clearAlarm(1);
+                rtc.disable32K();
+                pinMode(CLOCK_INTERRUPT_PIN, INPUT_PULLUP);
+                attachInterrupt(digitalPinToInterrupt(CLOCK_INTERRUPT_PIN), alarm, FALLING);
+                rtc.clearAlarm(1);
+                rtc.clearAlarm(2);
+                rtc.writeSqwPinMode(DS3231_OFF);
+                rtc.setAlarm2(rtc.now(), DS3231_A2_PerMinute);
+                rtc.setAlarm1(DateTime(0, 0, 0, 0, 0, 55), DS3231_A1_Second);
+                SetTime();
+            } else {
+                strip.setPixelColor(1, strip.Color(150, 0, 0));
+                strip.setPixelColor(0, strip.Color(150, 0, 0));
+                strip.setPixelColor(14, strip.Color(150, 0, 0));
+                strip.setPixelColor(15, strip.Color(150, 0, 0));
+                strip.setPixelColor(30, strip.Color(150, 0, 0));
+                strip.setPixelColor(31, strip.Color(150, 0, 0));
+                strip.setPixelColor(44, strip.Color(150, 0, 0));
+                strip.setPixelColor(45, strip.Color(150, 0, 0));
+                strip.setPixelColor(10, strip.Color(150, 0, 0));
+                strip.setPixelColor(11, strip.Color(150, 0, 0));
+                strip.setPixelColor(24, strip.Color(150, 0, 0));
+                strip.setPixelColor(25, strip.Color(150, 0, 0));
+                strip.setPixelColor(40, strip.Color(150, 0, 0));
+                strip.setPixelColor(41, strip.Color(150, 0, 0));
+                strip.setPixelColor(54, strip.Color(150, 0, 0));
+                strip.setPixelColor(55, strip.Color(150, 0, 0));
+                strip.setPixelColor(6, strip.Color(150, 0, 0));
+                strip.setPixelColor(7, strip.Color(150, 0, 0));
+                strip.setPixelColor(20, strip.Color(150, 0, 0));
+                strip.setPixelColor(21, strip.Color(150, 0, 0));
+                strip.setPixelColor(36, strip.Color(150, 0, 0));
+                strip.setPixelColor(37, strip.Color(150, 0, 0));
+                strip.setPixelColor(50, strip.Color(150, 0, 0));
+                strip.setPixelColor(51, strip.Color(150, 0, 0));
+                strip.show();
+                delay(10000);
+            }
         }
     }
 }
@@ -342,7 +404,7 @@ void SetTime() {
     // now that the time's been split up, we can output it all to the digits of the clock.
     // I'm doing each digit separately.  again as with before, there's probably way better ways of doing this.
 
-    if ((PSTHour1 == "0") && (PSTHour2 == "0") && (PSTMinute1 == "0") && (PSTMinute2 == "0")) {
+    if ((PSTHour1 == "0") && (PSTHour2 == "8") && (PSTMinute1 == "0") && (PSTMinute2 == "0")) {
         // it's midnight, so re-run the time sync
         GetTime();
     }
@@ -649,6 +711,101 @@ void loop() {
                     client.println("--select-arrow: var(--select-border);");
                     client.println("}");
 
+                    client.print(".loader_website {");
+                    client.print("position: fixed;");
+                    client.print("top: 0;");
+                    client.print("left: 0px;");
+                    client.print("z-index: 1100;");
+                    client.print("width: 100%;");
+                    client.print("height: 100%;");
+                    client.print("background-color: rgba(0, 0, 0, 0.5);");
+                    client.print("display: block;");
+
+                    client.print("-webkit-transition: ease-in-out 0.1s;");
+                    client.print("-moz-transition: ease-in-out 0.1s;");
+                    client.print("-o-transition: ease-in-out 0.1s;");
+                    client.print("-ms-transition: ease-in-out 0.1s;");
+                    client.print("transition: ease-in-out 0.1s;");
+
+                    client.print("-webkit-box-sizing: border-box;");
+                    client.print("-moz-box-sizing: border-box;");
+                    client.print("-o-box-sizing: border-box;");
+                    client.print("-ms-box-sizing: border-box;");
+                    client.print("box-sizing: border-box;");
+                    client.print("}");
+
+                    client.print(".loader_website * {");
+                    client.print("-webkit-box-sizing: border-box;");
+                    client.print("-moz-box-sizing: border-box;");
+                    client.print("-o-box-sizing: border-box;");
+                    client.print("-ms-box-sizing: border-box;");
+                    client.print("box-sizing: border-box;");
+                    client.print("}");
+
+                    client.print("body.loader .loader_website span {");
+                    client.print("top: 18%;");
+                    client.print("}");
+
+                    client.print(".loader_website > span {");
+                    client.print("display: block;");
+                    client.print("width: 48px;");
+                    client.print("height: 48px;");
+                    client.print("padding: 4px;");
+                    client.print("background-color: #ffffff;");
+                    client.print("-webkit-border-radius: 100%;");
+                    client.print("-moz-border-radius: 100%;");
+                    client.print("-o-border-radius: 100%;");
+                    client.print("-ms-border-radius: 100%;");
+                    client.print("border-radius: 100%;");
+                    client.print("position: absolute;");
+                    client.print("left: 50%;");
+                    client.print("margin-left: -24px;");
+                    client.print("top: -50px;");
+
+                    client.print("-webkit-transition: ease-in-out 0.1s;");
+                    client.print("-moz-transition: ease-in-out 0.1s;");
+                    client.print("-o-transition: ease-in-out 0.1s;");
+                    client.print("-ms-transition: ease-in-out 0.1s;");
+                    client.print("transition: ease-in-out 0.1s;");
+
+                    client.print("-webkit-box-shadow: #000 0px 5px 10px -5px;");
+                    client.print("-moz-box-shadow: #000 0px 5px 10px -5px;");
+                    client.print("-o-box-shadow: #000 0px 5px 10px -5px;");
+                    client.print("-ms-box-shadow: #000 0px 5px 10px -5px;");
+                    client.print("box-shadow: #000 0px 5px 10px -5px;");
+                    client.print("}");
+
+                    client.print(".loader_website > span > svg {");
+                    client.print("fill: transparent;");
+                    client.print("stroke: #563d7c;");
+                    client.print("stroke-width: 5;");
+                    client.print("animation: loader_dash 2s ease infinite, loader_rotate 2s linear infinite;");
+                    client.print("}");
+
+                    client.print("@keyframes loader_dash {");
+                    client.print("0% {");
+                    client.print("stroke-dasharray: 1, 95;");
+                    client.print("stroke-dashoffset: 0;");
+                    client.print("}");
+                    client.print("50% {");
+                    client.print("stroke-dasharray: 85, 95;");
+                    client.print("stroke-dashoffset: -25;");
+                    client.print("}");
+                    client.print("100% {");
+                    client.print("stroke-dasharray: 85, 95;");
+                    client.print("stroke-dashoffset: -93;");
+                    client.print("}");
+                    client.print("}");
+
+                    client.print("@keyframes loader_rotate {");
+                    client.print("0% {");
+                    client.print("transform: rotate(0deg);");
+                    client.print("}");
+                    client.print("100% {");
+                    client.print("transform: rotate(360deg);");
+                    client.print("}");
+                    client.print("}");
+
                     client.println("select {");
                     client.println("color: black;");
                     client.println("-webkit-appearance: none;");
@@ -843,11 +1000,7 @@ void loop() {
                     client.println("border: 16px solid #f3f3f3; /* Light grey */");
                     client.println("border-style: solid;");
                     client.println("border-width: 0px;");
-                    client.println("/*border-top: 16px solid #3498db; !* Blue *!*/");
-                    client.println("/*border-radius: 50%;*/");
-                    client.println("width: 120px;");
-                    client.println("height: 120px;");
-                    client.println("/*animation: spin 2s linear infinite;*/");
+
                     client.println("}");
 
                     client.println("@keyframes spin {");
@@ -875,16 +1028,15 @@ void loop() {
                     client.println("</style>");
 
                     client.println("<header class='container-col'>");
-                    client.println("<H1>Enter your SSID, Password below. if I haven't fucked up, after you hit Save, it should reconnect to your main");
-                    client.println("Wifi");
-                    client.println("and this Wireless Access Point will vanish (if the info entered is correct)<br>You can revisit this setup page");
-                    client.println("by");
-                    client.println("checking your router or other tools for the clocks new ip address</H1>");
+
                     client.println("</header>");
                     ////  client.print("<form method='get' action=''>");
-                    client.println("<form>");
+                    //  client.println("<form onsubmit='return false'>");
                     client.println("<div class='formcontent'>");
                     client.println("<ul>");
+                    client.println("<Li>");
+                    client.println("<H3>Enter your SSID and Password below. </h3>");
+                    client.println("</Li>");
                     client.println("<Li>");
                     client.println("<label for='ssid'>SSID</label>");
                     client.println("<input id='ssid' required type='text' name='ssid'");
@@ -1018,11 +1170,11 @@ void loop() {
                     client.println("</li>");
 
                     client.println("<li>");
-                    client.println("<button id='Submit' name='Submit' value='Submit' onclick='submit();' type='submit'>Save</button>");
+                    client.println("<button id='Submit' name='Submit' value='Submit' onclick='submit();' >Save</button>");
                     client.println("</li>");
                     client.println("</ul>");
                     client.println("</div>");
-                    client.println("</form>");
+                    //  client.println("</form>");
                     client.println("<script>");
 
                     client.println("if (document.getElementById('dimmer').value === 'off') {");
@@ -1045,8 +1197,69 @@ void loop() {
                     client.println("  output.value = this.value;");
                     client.println("  slider.value = this.value;");
                     client.println("}");
-                    // client.println("<script>");
+                    client.print("var Loader = {");
+                    client.print("loader: null,");
+                    client.print("body: null,");
+                    client.print("html: '<span><svg width=\\'40\\' height=\\'40\\' version=\\'1.1\\' xmlns=\\'http://www.w3.org/2000/svg\\'><circle cx=\\'20\\' cy=\\'20\\' r=\\'15\\'></svg></span>',");
+                    client.print("cssClass: 'loader',");
+                    client.print("check: function () {");
+                    client.print("if (this.body == null) {");
+                    client.print("this.body = document.getElementsByTagName('body')[0];");
+                    client.print("}");
+                    client.print("},");
+                    client.print("open: function () {");
+                    client.print("this.check();");
+                    client.print("if (!this.isOpen()) {");
+                    client.print("this.loader = document.createElement('div');");
+                    client.print("this.loader.setAttribute('id', 'loader');");
+                    client.print("this.loader.classList.add('loader_website');");
+                    client.print("this.loader.innerHTML = this.html;");
+                    client.print("this.body.appendChild(this.loader);");
+                    client.print("setTimeout(function () {");
+                    client.print("Loader.body.classList.add(Loader.cssClass);");
+                    client.print("}, 1);");
+                    client.print("}");
+                    client.print("return this;");
+                    client.print("},");
+                    client.print("close: function () {");
+                    client.print("this.check();");
+                    client.print("if (this.isOpen()) {");
+                    client.print("this.body.classList.remove(this.cssClass);");
+                    client.print("setTimeout(function () {");
+                    client.print("Loader.loader.remove();");
+                    client.print("}, 100);");
+                    client.print("}");
+                    client.print("return this;");
+                    client.print("},");
+                    client.print("isOpen: function () {");
+                    client.print("this.check();");
+                    client.print("return this.body.classList.contains(this.cssClass);");
+                    client.print("},");
+                    client.print("ifOpened: function (callback, close) {");
+                    client.print("this.check();");
+                    client.print("if (this.isOpen()) {");
+                    client.print("if (!!close)");
+                    client.print("this.close();");
+                    client.print("if (typeof callback === 'function') {");
+                    client.print("callback();");
+                    client.print("}");
+                    client.print("}");
+                    client.print("return this;");
+                    client.print("},");
+                    client.print("ifClosed: function (callback, open) {");
+                    client.print("this.check();");
+                    client.print("if (!this.isOpen()) {");
+                    client.print("if (!!open)");
+                    client.print("this.open();");
+                    client.print("if (typeof callback === 'function') {");
+                    client.print("callback();");
+                    client.print("}");
+                    client.print("}");
+                    client.print("return this;");
+                    client.print("}");
+                    client.print("};");
                     client.println("function submit() {");
+                    client.println("Loader.open();");
                     client.println("var FormValid = true;");
                     client.println("var data = [];");
 
@@ -1083,15 +1296,19 @@ void loop() {
                     client.println("request.onreadystatechange = function () {");
                     client.println("if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {");
                     client.println("console.log('succeed');");
+                    client.print("Loader.close()");
                     // client.println("el.classList.add('hidden');");
                     //   myresponse.value = request.responseText;
                     client.println("} else {");
                     client.println("console.log('server error');");
+                    client.print("Loader.close()");
+
                     client.println("}");
                     client.println("};");
 
                     client.println("request.onerror = function () {");
                     client.println("console.log('something went wrong');");
+                    client.print("Loader.close()");
                     client.println("};");
 
                     client.println("request.send(mypost);");
@@ -1105,13 +1322,18 @@ void loop() {
                     break;
                 }
                 if (c == '\n') {
-                    Serial.println(readString);
+                    //  Serial.println(readString);
                     if (readString.indexOf("ssid") > 0) {
-                        client.println("HTTP/1.1 200 OK");
-                        client.println("Content-Type: text/html");
-                        client.println();
-
-                        Serial.println(readString);
+                        strip.setPixelColor(6, strip.Color(75, 150, 0));
+                        strip.setPixelColor(7, strip.Color(75, 150, 0));
+                        strip.setPixelColor(20, strip.Color(75, 150, 0));
+                        strip.setPixelColor(21, strip.Color(75, 150, 0));
+                        strip.setPixelColor(36, strip.Color(75, 150, 0));
+                        strip.setPixelColor(37, strip.Color(75, 150, 0));
+                        strip.setPixelColor(50, strip.Color(75, 150, 0));
+                        strip.setPixelColor(51, strip.Color(75, 150, 0));
+                        strip.show();
+                        // Serial.println(readString);
                         char Buf[250];
                         readString.toCharArray(Buf, 150);
                         char *token = strtok(Buf, "/?");  // Get everything up to the /if(token) // If we got something
@@ -1159,23 +1381,36 @@ void loop() {
                                 }
                             }
                         }
+                        client.println("HTTP/1.1 200 OK");
+                        client.println("Content-Type: text/html");
+                        client.println();
                         Serial.println("Starting Wifi Check");
                         String returnedip = validateSSID(owner);
                         if (returnedip == "0.0.0.0") {
                             Serial.println("Wifi Failed");
                             status = WiFi.beginAP(ssid);
-                            strip.setPixelColor(50, strip.Color(255, 0, 0));
-                            strip.setPixelColor(51, strip.Color(255, 0, 0));
-                            strip.setPixelColor(36, strip.Color(255, 0, 0));
-                            strip.setPixelColor(37, strip.Color(255, 0, 0));
                             strip.setPixelColor(6, strip.Color(255, 0, 0));
                             strip.setPixelColor(7, strip.Color(255, 0, 0));
                             strip.setPixelColor(20, strip.Color(255, 0, 0));
                             strip.setPixelColor(21, strip.Color(255, 0, 0));
+                            strip.setPixelColor(36, strip.Color(255, 0, 0));
+                            strip.setPixelColor(37, strip.Color(255, 0, 0));
+                            strip.setPixelColor(50, strip.Color(255, 0, 0));
+                            strip.setPixelColor(51, strip.Color(255, 0, 0));
+
+                            strip.setPixelColor(0, strip.Color(255, 0, 0));
+                            strip.setPixelColor(1, strip.Color(255, 0, 0));
+                            strip.setPixelColor(14, strip.Color(255, 0, 0));
+                            strip.setPixelColor(15, strip.Color(255, 0, 0));
+                            strip.setPixelColor(30, strip.Color(255, 0, 0));
+                            strip.setPixelColor(31, strip.Color(255, 0, 0));
+                            strip.setPixelColor(44, strip.Color(255, 0, 0));
+                            strip.setPixelColor(45, strip.Color(255, 0, 0));
+
                             strip.show();
                             // startupPersonalWAP();
                             printWiFiStatus();
-                        } else {
+                        } else {  // connection successful.  Top and bottow rows blue.
                             strip.setPixelColor(50, strip.Color(0, 0, 255));
                             strip.setPixelColor(51, strip.Color(0, 0, 255));
                             strip.setPixelColor(37, strip.Color(0, 0, 255));
@@ -1184,6 +1419,15 @@ void loop() {
                             strip.setPixelColor(7, strip.Color(0, 0, 255));
                             strip.setPixelColor(20, strip.Color(0, 0, 255));
                             strip.setPixelColor(21, strip.Color(0, 0, 255));
+
+                            strip.setPixelColor(0, strip.Color(0, 0, 255));
+                            strip.setPixelColor(1, strip.Color(0, 0, 255));
+                            strip.setPixelColor(14, strip.Color(0, 0, 255));
+                            strip.setPixelColor(15, strip.Color(0, 0, 255));
+                            strip.setPixelColor(30, strip.Color(0, 0, 255));
+                            strip.setPixelColor(31, strip.Color(0, 0, 255));
+                            strip.setPixelColor(44, strip.Color(0, 0, 255));
+                            strip.setPixelColor(45, strip.Color(0, 0, 255));
                             strip.show();
                             owner.valid = true;
                             my_flash_store.write(owner);
@@ -1283,7 +1527,7 @@ void printWifiStatus() {
 void GetTime() {
     strip.setPixelColor(28, strip.Color(255, 0, 0));
     strip.setPixelColor(29, strip.Color(255, 0, 0));
-
+    Serial.println('Updating Time');
     strip.show();
     if (WiFi.status() == WL_NO_MODULE) {
         Serial.println("Communication with WiFi module failed!");
