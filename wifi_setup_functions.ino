@@ -15,9 +15,6 @@
 // 3. sort out refreshing the clock twice a day (may be ok with the DS3231 keeping the time, but we'll see.
 // 4. Add software reset // worked once... very odd
 // 5. Make sure all debug states are properly displayed via pixels and document those
-// 6. make sure the temperature supports negative values and upto 3 digits (so basically -99 to +999
-// 7. add ability to prevent dimming of display
-// 8. add option to set brightness levels manually if dimming is turned off
 
 RTC_DS3231 rtc;
 #define CLOCK_INTERRUPT_PIN 2
@@ -251,32 +248,43 @@ void alarm() {
         rtc.clearAlarm(2);
         if ((String)owner.temp == "on") {
             //      //this is for the temperature
-            Serial.println(owner.temp);
-            Serial.print("Temperature: ");
-            Serial.print(rtc.getTemperature());
-            Serial.println(" C");
-            Serial.println(owner.tempUnits);
-            String temp1;
-            String temp2;
-            String TempUnits;
+
+            String TempUnits = "CF";
+
+            //   int Temperature = rtc.getTemperature();
+            int Temperature = 45;
             if ((String)owner.tempUnits == "F") {
-                Serial.println("CaveMan Temperature");
-                int Temperature = rtc.getTemperature();
-                int Temperature2 = (Temperature * 1.8) + 32;
-                temp1 = String(Temperature2).substring(0, 1);
-                temp2 = String(Temperature2).substring(1, 2);
-                Serial.println(temp1);
-                Serial.println(temp2);
                 TempUnits = "F";
             } else {
-                temp1 = String(rtc.getTemperature()).substring(0, 1);
-                temp2 = String(rtc.getTemperature()).substring(1, 2);
-                Serial.println(temp1);
-                Serial.println(temp2);
                 TempUnits = "C";
             }
+            outputDigitsTemp(rtc.getTemperature(), TempUnits);
+            //      Serial.println(owner.temp);
+            //      Serial.print("Temperature: ");
+            //      Serial.print(rtc.getTemperature());
+            //      Serial.println(" C");
+            //      Serial.println(owner.tempUnits);
+            //      String temp1 ;
+            //      String temp2;
+            //      String TempUnits;
+            //      if ((String)owner.tempUnits == "F") {
+            //        Serial.println("CaveMan Temperature");
+            //        int Temperature = rtc.getTemperature();
+            //        int Temperature2 = (Temperature * 1.8) + 32;
+            //        temp1 = String(Temperature2).substring(0, 1);
+            //        temp2 = String(Temperature2).substring(1, 2);
+            //        Serial.println(temp1);
+            //        Serial.println(temp2);
+            //        TempUnits = "F";
+            //      } else {
+            //        temp1 = String(rtc.getTemperature()).substring(0, 1);
+            //        temp2 = String(rtc.getTemperature()).substring(1, 2);
+            //        Serial.println(temp1);
+            //        Serial.println(temp2);
+            //        TempUnits = "C";
+            //      }
             //      Serial.println("in temp loop");
-            outputDigitsTemp(temp1.toInt(), temp2.toInt(), TempUnits);
+            // outputDigitsTemp(temp1.toInt(), temp2.toInt(), TempUnits);
             //      //      delay(5000);
             //      //      SetTime();
             //      rtc.clearAlarm(1);
@@ -405,9 +413,53 @@ void SetTime() {
     // outputDigits (8, 8, 8, 8);
     // outputDigits (9, 9, 9, 9);
 }
+int numdigits(int i) {
+    char str[20];
 
-void outputDigitsTemp(int digit1, int digit2, String units) {
-    int nums[][14] = {
+    sprintf(str, "%d", i);
+    return (strlen(str));
+}
+
+void outputDigitsTemp(int Temperature, String units) {
+    String temp1;
+    String temp2;
+    String temp3;
+    int digit2;
+    int digit3;
+    int digit1;
+    int Temp3;
+    String TempUnits;
+    bool ShowThirdDigit = false;
+    if (units == "F") {
+        Serial.println("CaveMan Temperature");
+        Serial.println(numdigits(Temperature));
+        Serial.println(Temperature);
+        int Temperature2 = (Temperature * 1.8) + 32;
+        temp1 = String(Temperature2).substring(0, 1);
+        temp2 = String(Temperature2).substring(1, 2);
+        if (numdigits(Temperature2) > 2) {
+            ShowThirdDigit = true;
+            temp3 = String(Temperature2).substring(2, 3);
+            digit3 = temp3.toInt();
+        } else {
+        }
+        digit1 = temp1.toInt();
+        digit2 = temp2.toInt();
+        TempUnits = "F";
+    } else {
+        temp1 = String(Temperature).substring(0, 1);
+        temp2 = String(Temperature).substring(1, 2);
+        if (numdigits(Temperature) > 2) {
+            ShowThirdDigit = true;
+            temp3 = String(Temperature).substring(2, 3);
+            digit3 = temp3.toInt();
+        } else {
+        }
+        digit1 = temp1.toInt();
+        digit2 = temp2.toInt();
+        TempUnits = "C";
+    }
+    int nums[][15] = {
 
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 11, -1, -1},  // 0 //seems ok
         {0, 1, -1, -1, -1, -1, 6, 7, 8, 9, 10, 11, 12, 13},        // 1 //seems ok
@@ -421,8 +473,27 @@ void outputDigitsTemp(int digit1, int digit2, String units) {
         {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 12, 13},  // 9 //seems ok
         {-1, -1, 2, 3, 4, 5, -1, -1, -1, -1, 10, 11, -1, -1},      // C (for Temp)
         {0, 1, 2, 3, 4, 5, -1, -1, -1, -1, -1, -1, -1, -1},        // F (for Temp)
+        {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, -1, -1, 12, 13},            // // - (for Temp)
         {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13},            // all off
     };
+
+    if ((String)temp1 == "-") {
+        for (int j = 44; j < 58; j++) {  // fourth digit... a 1
+            if (nums[12][j - 44] == -1) {
+                pixels[j] = -1;
+            } else {
+                pixels[j] = nums[12][j - 44] + 44;
+            }
+        }
+    } else {
+        for (int j = 44; j < 58; j++) {  // fourth digit... a 1
+            if (nums[digit1][j - 44] == -1) {
+                pixels[j] = -1;
+            } else {
+                pixels[j] = nums[digit1][j - 44] + 44;
+            }
+        }
+    }
 
     for (int j = 30; j < 44; j++) {  // third digit.. a 7
         if (nums[digit2][j - 30] == -1) {
@@ -431,37 +502,105 @@ void outputDigitsTemp(int digit1, int digit2, String units) {
             pixels[j] = nums[digit2][j - 30] + 30;
         }
     }
-    for (int j = 44; j < 58; j++) {  // fourth digit... a 1
-        if (nums[digit1][j - 44] == -1) {
-            pixels[j] = -1;
-        } else {
-            pixels[j] = nums[digit1][j - 44] + 44;
-        }
-    }
-
-    pixels[28] = 28;                // dots
-    pixels[29] = 29;                // dots
-    for (int j = 0; j < 14; j++) {  // first digit.  a 3
-        pixels[j] = nums[12][j];
-    }
-    if (units == "F") {
+    pixels[28] = 28;  // dots
+    pixels[29] = 29;  // dots
+    if (ShowThirdDigit) {
         for (int j = 14; j < 28; j++) {  // second digit... a 3
-            if (nums[11][j - 14] == -1) {
+            if (nums[digit3][j - 14] == -1) {
                 pixels[j] = -1;
             } else {
-                pixels[j] = nums[11][j - 14] + 14;
+                pixels[j] = nums[digit3][j - 14] + 14;
             }
         }
     } else {
         for (int j = 14; j < 28; j++) {  // second digit... a 3
-            if (nums[10][j - 14] == -1) {
+            if (nums[13][j - 14] == -1) {
                 pixels[j] = -1;
             } else {
-                pixels[j] = nums[10][j - 14] + 14;
+                pixels[j] = nums[13][j - 14] + 14;
             }
         }
     }
+    if (units == "F") {
+        for (int j = 0; j < 14; j++) {  // first digit.  a 3
+            pixels[j] = nums[11][j];
+        }
+    } else {
+        for (int j = 0; j < 14; j++) {  // first digit.  a 3
+            pixels[j] = nums[10][j];
+        }
+    }
 }
+// void outputDigitsTemp(int digit1, int digit2, String units) {
+//
+//   int nums[][14] = {
+//
+//     { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 11, -1, -1}, //0 //seems ok
+//     {0, 1, -1, -1, -1, -1, 6, 7, 8, 9, 10, 11, 12, 13},       //1 //seems ok
+//     { -1, -1, 2, 3, -1, -1, -1, -1, 8, 9, -1, -1, -1, -1},    //2 //seems ok
+//     { -1, -1, -1, -1, -1, -1, -1, -1, 8, 9, -1, -1, 12, 13},  //3
+//     {0, 1, -1, -1, -1, -1, 6, 7, -1, -1, -1, -1, 12, 13},     //4
+//     { -1, -1, -1, -1, 4, 5, -1, -1, -1, -1, -1, -1, 12, 13},  //5////numbers represent the pixels that are NOT LIT
+//     { -1, -1, -1, -1, 4, 5, -1, -1, -1, -1, -1, -1, -1, -1},  //6
+//     {0, 1, -1, -1, -1, -1, -1, -1, 8, 9, 10, 11, 12, 13},     //7 //seems ok
+//     { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}, //8 //seems ok
+//     { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 12, 13}, //9 //seems ok
+//     { -1, -1, 2, 3, 4, 5, -1, -1, -1, -1, 10, 11, -1, -1}, //C (for Temp)
+//     { 0, 1, 2, 3, 4, 5, -1, -1, -1, -1, -1, -1, -1, -1}, // F (for Temp)
+//     { 0, 1, 2, 3, 4, 5,  6, 7, 8, 9, 10, 11, 12, 13}, // all off
+//   };
+//
+//   for (int j = 30; j < 44; j++) { //third digit.. a 7
+//     if (nums[digit2][j - 30] == -1)
+//     {
+//       pixels[j] = -1;
+//     }
+//     else
+//     {
+//
+//       pixels[j] = nums[digit2][j - 30] + 30;
+//     }
+//   }
+//   for (int j = 44; j < 58; j++) { //fourth digit... a 1
+//     if (nums[digit1][j - 44] == -1) {
+//       pixels[j] = -1;
+//     } else {
+//       pixels[j] = nums[digit1][j - 44] + 44;
+//     }
+//   }
+//
+//   pixels[28] = 28; //dots
+//   pixels[29] = 29; // dots
+//   for (int j = 0; j < 14; j++)
+//   { //first digit.  a 3
+//     pixels[j] = nums[12][j];
+//   }
+//   if (units == "F") {
+//     for (int j = 14; j < 28; j++)
+//     { //second digit... a 3
+//       if (nums[11][j - 14] == -1)
+//       {
+//         pixels[j] = -1;
+//       }
+//       else
+//       {
+//         pixels[j] = nums[11][j - 14] + 14;
+//       }
+//     }
+//   } else {
+//     for (int j = 14; j < 28; j++)
+//     { //second digit... a 3
+//       if (nums[10][j - 14] == -1)
+//       {
+//         pixels[j] = -1;
+//       }
+//       else
+//       {
+//         pixels[j] = nums[10][j - 14] + 14;
+//       }
+//     }
+//   }
+// }
 void outputDigits(int digit1, int digit2, int digit3, int digit4) {
     int nums[][14] = {
         // 0   1   2   3   4   5   6   7   8   9  10  11  12  13
@@ -522,6 +661,24 @@ uint32_t Wheel(byte WheelPos) {
 }
 void loop() {
     if (WifiSetup == 0) {
+        if (owner.valid == false) {
+        } else {
+            //  Serial.println("Dimmer Setting");
+            //  Serial.print ((String)owner.dimmer);
+            //  Serial.println("Brightness Setting");
+            //  Serial.print ((String)owner.brightness);
+            //  Serial.println("SSID Setting");
+            //  Serial.print ((String)owner.wifissid);
+            //  Serial.println("Timezone Setting");
+            //  Serial.print ((String)owner.timezone);
+            //  Serial.println("12 hr Setting");
+            //  Serial.print ((String)owner.twelvehr);
+            //  Serial.println("Temp Setting");
+            //  Serial.print ((String)owner.temp);
+            //  Serial.println("Temp Units Setting");
+            //  Serial.print ((String)owner.tempUnits);
+            //
+        }
         //   lightvalue = analogRead(pResistor);
         uint16_t i, j;
 
@@ -539,7 +696,8 @@ void loop() {
         if ((String)owner.dimmer == "of") {
             String BrightnessLevel = (String)owner.brightness;
             BrightnessLevel = (String)owner.brightness;
-
+            Serial.println("Setting Brightness to");
+            Serial.println((String)BrightnessLevel.toInt());
             strip.setBrightness(BrightnessLevel.toInt());
             strip.show();
         } else {
@@ -561,93 +719,13 @@ void loop() {
     }
     WiFiClient client = server.available();
     if (client) {
-        // Serial.println("In Client Loop");
+        bool currentLineIsBlank = true;
         while (client.connected()) {
             if (client.available()) {
                 char c = client.read();
-                // Serial.println(readString.length());
-                // read char by char HTTP request
-                if (readString.length() < 200) {
-                    // store characters to string
-                    readString += c;
-                    // Serial.print(c); //uncomment to see in serial monitor
-                }
-                // Serial.println(readString);
-                // if HTTP request has ended
-                if (c == '\n') {
-                    if (readString.indexOf("Submit=Subm") > 0) {
-                        //   Serial.println(readString);
-                        char Buf[250];
-                        readString.toCharArray(Buf, 150);
-                        char *token = strtok(Buf, "/?");  // Get everything up to the /if(token) // If we got something
-                        {
-                            char *name = strtok(NULL, "=");  // Get the first name. Use NULL as first argument to keep parsing same string
-                            while (name) {
-                                char *valu = strtok(NULL, "&");
-                                if (valu) {
-                                    if (String(name) == "?ssid") {
-                                        String ssidname = valu;
-                                        ssidname.toCharArray(owner.wifissid, 100);
-                                    }
-                                    if (String(name) == "password") {
-                                        String pass = valu;
-                                        pass.toCharArray(owner.Password, 100);
-                                    }
-                                    if (String(name) == "timezone") {
-                                        String pass = valu;
-                                        pass.toCharArray(owner.timezone, 10);
-                                    }
-                                    if (String(name) == "12hr") {
-                                        String twelvehr = valu;
-                                        twelvehr.toCharArray(owner.twelvehr, 3);
-                                    }
-                                    if (String(name) == "ShowTemp") {
-                                        String temp = valu;
-                                        temp.toCharArray(owner.temp, 3);
-                                    }
-                                    if (String(name) == "TempUnits") {
-                                        String temp = valu;
-                                        temp.toCharArray(owner.tempUnits, 3);
-                                    }
+                readString += c;
 
-                                    if (String(name) == "range") {
-                                        String brightness = valu;
-                                        brightness.toCharArray(owner.brightness, 5);
-                                    }
-                                    if (String(name) == "dimmer") {
-                                        String dimmer = valu;
-                                        dimmer.toCharArray(owner.dimmer, 3);
-                                    }
-                                    name = strtok(NULL, "=");  // Get the next name
-                                }
-                            }
-                        }
-                        String returnedip = validateSSID(owner);
-                        if (returnedip == "0.0.0.0") {
-                            Serial.println("Wifi Failed");
-                            status = WiFi.beginAP(ssid);
-                            strip.setPixelColor(50, strip.Color(255, 0, 0));
-                            strip.setPixelColor(51, strip.Color(255, 0, 0));
-                            strip.setPixelColor(36, strip.Color(255, 0, 0));
-                            strip.setPixelColor(37, strip.Color(255, 0, 0));
-                            strip.show();
-                            printWiFiStatus();
-                        } else {
-                            strip.setPixelColor(50, strip.Color(0, 0, 255));
-                            strip.setPixelColor(51, strip.Color(0, 0, 255));
-                            strip.setPixelColor(37, strip.Color(0, 0, 255));
-                            strip.setPixelColor(36, strip.Color(0, 0, 255));
-                            strip.show();
-                            owner.valid = true;
-                            my_flash_store.write(owner);
-                            owner2 = my_flash_store.read();
-                            // Serial.println((String)owner2.temp);
-                            Serial.println((String)owner2.dimmer);
-                            Serial.println((String)owner2.twelvehr);
-                            Serial.println((String)owner2.brightness);
-                            ////digitalWrite(Reset_PIN, LOW);
-                        }
-                    }
+                if (c == '\n' && currentLineIsBlank) {
                     String twelvehour = "";
                     if ((String)owner.twelvehr == "on") {
                         twelvehour = " selected='selected' ";
@@ -676,6 +754,13 @@ void loop() {
                     client.println("<HTML>");
                     client.println("<HEAD>");
                     client.println("<TITLE>Rainbow Clock Setup</TITLE>");
+
+                    client.println("<meta http-equiv='Cache-Control' content='no-cache, no-store, must-revalidate' />");
+
+                    client.println("<meta http-equiv='Pragma' content='no-cache' />");
+
+                    client.println("<meta http-equiv='Expires' content='0' />");
+
                     client.println("</HEAD>");
 
                     client.println("<BODY>");
@@ -925,7 +1010,7 @@ void loop() {
                     client.println("by");
                     client.println("checking your router or other tools for the clocks new ip address</H1>");
                     client.println("</header>");
-                    client.print("<form method='get' action=''>");
+                    ////  client.print("<form method='get' action=''>");
                     client.println("<div class='formcontent'>");
                     client.println("<ul>");
                     client.println("<Li>");
@@ -942,7 +1027,7 @@ void loop() {
                     client.println("       name='password'");
                     client.println("      value='");
                     client.print(owner.Password);
-                    client.print("' placeholder='password' required><label for='password'>Password</label><br>");
+                    client.print("' placeholder='password' required><br>");
 
                     client.println("</li>");
                     client.println("<li>");
@@ -1085,17 +1170,176 @@ void loop() {
 
                     client.println("slider.oninput = function() {");
                     client.println("  output.value = this.value;");
+                    client.println("  slider.value = this.value;");
                     client.println("}");
+                    // client.println("<script>");
+                    client.println("function submit() {");
+                    client.println("var FormValid = true;");
+                    client.println("var data = [];");
+
+                    client.println(" const container = document.querySelector('div.formcontent');");
+                    client.println(" container.querySelectorAll('input').forEach(function (e) {");
+                    client.println("  if (e.validity.valueMissing) {");
+                    client.println("    FormValid = false;");
+                    client.println(";  }");
+
+                    client.println("  data[e.id] = e.value;");
+
+                    client.println("});");
+                    client.println("container.querySelectorAll('select').forEach(function (e) {");
+                    client.println("data[e.id] = e.value;");
+
+                    client.println("});");
+
+                    client.println("encodeDataToURL = (data) => {");
+                    client.println("return Object");
+                    client.println(".keys(data)");
+                    client.println(".map(value => `${value}=${encodeURIComponent(data[value])}`)");
+                    client.println(".join('&');");
+                    client.println("}");
+
+                    // console.log(encodeDataToURL(data));
+                    client.println("var mypost = encodeDataToURL(data)");
+                    client.println("mypost = mypost + '&Submit=Submit'");
+                    // console.log(mypost);
+                    client.println("if (FormValid) {");
+                    client.println("var request = new XMLHttpRequest();");
+                    client.println("request.open('GET', '/', true);");
+                    client.println("request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');");
+                    client.println("request.setRequestHeader('mydata','/?'+encodeDataToURL(data));");
+                    client.println("request.onreadystatechange = function () {");
+                    client.println("if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {");
+                    client.println("console.log('succeed');");
+                    // client.println("el.classList.add('hidden');");
+                    //   myresponse.value = request.responseText;
+                    client.println("} else {");
+                    client.println("console.log('server error');");
+                    client.println("}");
+                    client.println("};");
+
+                    client.println("request.onerror = function () {");
+                    client.println("console.log('something went wrong');");
+                    client.println("};");
+
+                    client.println("request.send(mypost);");
+                    client.println("}");
+                    client.println("}");
+                    //          client.println("           </script>");
+
                     client.println("</script>");
                     client.println("</BODY>");
                     client.println("</HTML>");
+                    break;
+                }
+                if (c == '\n') {
+                    Serial.println(readString);
+                    if (readString.indexOf("ssid") > 0) {
+                        client.println("HTTP/1.1 200 OK");
+                        client.println("Content-Type: text/html");
+                        client.println();
 
-                    delay(1);
-                    client.stop();
+                        Serial.println(readString);
+                        char Buf[250];
+                        readString.toCharArray(Buf, 150);
+                        char *token = strtok(Buf, "/?");  // Get everything up to the /if(token) // If we got something
+                        {
+                            char *name = strtok(NULL, "=");  // Get the first name. Use NULL as first argument to keep parsing same string
+                            while (name) {
+                                char *valu = strtok(NULL, "&");
+                                if (valu) {
+                                    Serial.println(String(name));
+                                    Serial.println(String(valu));
+                                    if (String(name) == "?ssid") {
+                                        String ssidname = valu;
+                                        ssidname.toCharArray(owner.wifissid, 100);
+                                    }
+                                    if (String(name) == "password") {
+                                        String pass = valu;
+                                        pass.toCharArray(owner.Password, 100);
+                                    }
+                                    if (String(name) == "timezone") {
+                                        String pass = valu;
+                                        pass.toCharArray(owner.timezone, 10);
+                                    }
+                                    if (String(name) == "12hr") {
+                                        String twelvehr = valu;
+                                        twelvehr.toCharArray(owner.twelvehr, 3);
+                                    }
+                                    if (String(name) == "ShowTemp") {
+                                        String temp = valu;
+                                        temp.toCharArray(owner.temp, 3);
+                                    }
+                                    if (String(name) == "TempUnits") {
+                                        String temp = valu;
+                                        temp.toCharArray(owner.tempUnits, 3);
+                                    }
+
+                                    if (String(name) == "myRange") {
+                                        String brightness = valu;
+                                        brightness.toCharArray(owner.brightness, 5);
+                                    }
+                                    if (String(name) == "dimmer") {
+                                        String dimmer = valu;
+                                        dimmer.toCharArray(owner.dimmer, 3);
+                                    }
+                                    name = strtok(NULL, "=");  // Get the next name
+                                }
+                            }
+                        }
+                        Serial.println("Starting Wifi Check");
+                        String returnedip = validateSSID(owner);
+                        if (returnedip == "0.0.0.0") {
+                            Serial.println("Wifi Failed");
+                            status = WiFi.beginAP(ssid);
+                            strip.setPixelColor(50, strip.Color(255, 0, 0));
+                            strip.setPixelColor(51, strip.Color(255, 0, 0));
+                            strip.setPixelColor(36, strip.Color(255, 0, 0));
+                            strip.setPixelColor(37, strip.Color(255, 0, 0));
+                            strip.setPixelColor(6, strip.Color(255, 0, 0));
+                            strip.setPixelColor(7, strip.Color(255, 0, 0));
+                            strip.setPixelColor(20, strip.Color(255, 0, 0));
+                            strip.setPixelColor(21, strip.Color(255, 0, 0));
+                            strip.show();
+                            // startupPersonalWAP();
+                            printWiFiStatus();
+                        } else {
+                            strip.setPixelColor(50, strip.Color(0, 0, 255));
+                            strip.setPixelColor(51, strip.Color(0, 0, 255));
+                            strip.setPixelColor(37, strip.Color(0, 0, 255));
+                            strip.setPixelColor(36, strip.Color(0, 0, 255));
+                            strip.setPixelColor(6, strip.Color(0, 0, 255));
+                            strip.setPixelColor(7, strip.Color(0, 0, 255));
+                            strip.setPixelColor(20, strip.Color(0, 0, 255));
+                            strip.setPixelColor(21, strip.Color(0, 0, 255));
+                            strip.show();
+                            owner.valid = true;
+                            my_flash_store.write(owner);
+                            /// owner2 = my_flash_store.read();
+                            // Serial.println((String)owner2.temp);
+
+                            ////digitalWrite(Reset_PIN, LOW);
+                        }
+                    }
+
                     readString = "";
+                    // you're starting a new line
+
+                    currentLineIsBlank = true;
+                } else if (c != '\r') {
+                    // you've gotten a character on the current line
+                    // Serial.println("b");
+                    currentLineIsBlank = false;
                 }
             }
         }
+
+        delay(1);
+
+        // close the connection:
+
+        client.stop();
+
+        Serial.println("client disonnected");
     }
 }
 String validateSSID(Credentials owner) {
@@ -1207,7 +1451,6 @@ void GetTime() {
         Serial.println("packet received");
         strip.setPixelColor(28, strip.Color(0, 0, 255));
         strip.setPixelColor(29, strip.Color(0, 0, 255));
-
         strip.show();
         Udp.read(packetBuffer, NTP_PACKET_SIZE);  // read the packet into the buffer
         unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
@@ -1225,4 +1468,7 @@ void reboot() {
     while (1) {
         ;
     }
+}
+
+void startupPersonalWAP() {
 }
