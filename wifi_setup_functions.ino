@@ -536,30 +536,36 @@ void loop() {
             strip.show();
             delay(15);
         }
+        if ((String)owner.dimmer == "of") {
+            String BrightnessLevel = (String)owner.brightness;
+            BrightnessLevel = (String)owner.brightness;
 
-        lightvalue = analogRead(pResistor);
-        // Serial.println(lightvalue);
-        if (lightvalue > 350) {
-            strip.setBrightness(255);
+            strip.setBrightness(BrightnessLevel.toInt());
             strip.show();
-        }
-        if ((lightvalue > 150) && (lightvalue < 350)) {
-            strip.setBrightness(150);
-            strip.show();
-        }
-        if (lightvalue < 150) {
-            strip.setBrightness(20);
-            strip.show();
+        } else {
+            lightvalue = analogRead(pResistor);
+            // Serial.println(lightvalue);
+            if (lightvalue > 350) {
+                strip.setBrightness(255);
+                strip.show();
+            }
+            if ((lightvalue > 150) && (lightvalue < 350)) {
+                strip.setBrightness(150);
+                strip.show();
+            }
+            if (lightvalue < 150) {
+                strip.setBrightness(20);
+                strip.show();
+            }
         }
     }
-
     WiFiClient client = server.available();
     if (client) {
         // Serial.println("In Client Loop");
         while (client.connected()) {
             if (client.available()) {
                 char c = client.read();
-                Serial.println(readString.length());
+                // Serial.println(readString.length());
                 // read char by char HTTP request
                 if (readString.length() < 200) {
                     // store characters to string
@@ -570,7 +576,7 @@ void loop() {
                 // if HTTP request has ended
                 if (c == '\n') {
                     if (readString.indexOf("Submit=Subm") > 0) {
-                        Serial.println(readString);
+                        //   Serial.println(readString);
                         char Buf[250];
                         readString.toCharArray(Buf, 150);
                         char *token = strtok(Buf, "/?");  // Get everything up to the /if(token) // If we got something
@@ -656,9 +662,13 @@ void loop() {
                         ShowTempSetting = " selected ";
                     }
                     String DimmerSetting = "";
-                    if ((String)owner.dimmer == "on") {
+                    if ((String)owner.dimmer == "of") {
                         DimmerSetting = " selected ";
                     }
+
+                    Serial.println(DimmerSetting);
+
+                    // Serial.println((String)owner.brightness);
 
                     client.println("HTTP/1.1 200 OK");
                     client.println("Content-Type: text/html");
@@ -669,6 +679,7 @@ void loop() {
                     client.println("</HEAD>");
 
                     client.println("<BODY>");
+
                     client.println("<style type='text/css'>");
                     client.println("*,");
                     client.println("*::before,");
@@ -901,6 +912,9 @@ void loop() {
                     client.println(".slider::-webkit-slider-thumb {-webkit-appearance: none;appearance: none;width: 25px;height: 25px;background: #04AA6D;cursor: pointer;}");
 
                     client.println(".slider::-moz-range-thumb {width: 25px;height: 25px;background: #04AA6D;cursor: pointer;}");
+                    client.println(".slider:disabled::-webkit-slider-thumb{background: grey;cursor: not-allowed !important;}");
+                    client.println(".slider:disabled::-moz-range-thumb{background: grey;cursor: not-allowed !important;}");
+                    client.println(".slider:disabled{cursor: not-allowed !important;}");
 
                     client.println("</style>");
 
@@ -1028,14 +1042,20 @@ void loop() {
                     client.println("<label for='myrange'>Display Brightness</label>");
 
                     client.println("<div class='slidecontainer'>");
-                    client.println("<input type='range' name='range' min='1' max='255' value='");
-                    client.print(owner.brightness);
+                    client.println("<input type='range' name='range' min='1' max='255' ");
 
-                    client.println("' class='slider' id='myRange'>");
-                    client.println("<input type='text' name='rangevalue'  value='");
-                    client.print(owner.brightness);
-                    client.println("' id='rangevalue'>");
-                    client.println(" <p>Value: <span id='demo'></span></p>");
+                    client.print("value='");
+
+                    String Brightnesslevel = (String)owner.brightness;
+                    Brightnesslevel.trim();
+                    client.print(Brightnesslevel);
+
+                    client.print("' class='slider' id='myRange'>");
+                    client.println("<input type='hidden' name='rangevalue' ");
+                    client.print("value='");
+                    client.print(Brightnesslevel);
+                    client.print("' id='rangevalue'>");
+                    // client.println(" <p>Value: <span id='demo'></span></p>");
                     client.println(" </div>");
 
                     client.println("</li>");
@@ -1046,6 +1066,19 @@ void loop() {
                     client.println("</ul>");
                     client.println("</div>");
                     client.println("<script>");
+
+                    client.println("if (document.getElementById('dimmer').value === 'off') {");
+                    client.println("document.getElementById('myRange').removeAttribute('disabled');");
+                    client.println("} else {");
+                    client.println("document.getElementById('myRange').setAttribute('disabled', 'disabled');");
+                    client.println("}");
+                    client.println("document.getElementById('dimmer').onchange = function () {");
+                    client.println("document.getElementById('myRange').setAttribute('disabled', 'disabled');");
+                    client.println("if (this.value == 'off') {");
+                    client.println("document.getElementById('myRange').removeAttribute('disabled');");
+                    client.println("}");
+                    client.println("};");
+
                     client.println("var slider = document.getElementById('myRange');");
                     client.println("var output = document.getElementById('rangevalue');");
                     client.println("output.value = slider.value;");
