@@ -10,11 +10,11 @@
 #include "RTClib.h"
 
 /////////TODO LIST /////
-// 1. need to figure out a way to retry the NTP connection if it fails (which it seems to do alot) - maybe fixed?
-// 2. need to figure out why the http server stops responding if say the SSID is wrong. - maybe fixed.  not the best solution in the world
-// 3. sort out refreshing the clock twice a day (may be ok with the DS3231 keeping the time, but we'll see.
+
+// 3. refreshing daily seems to have a problem.  it doesn't get anything from the NTP server (instantly fails).  So I've disabled this code
 // 4. Add software reset // worked once... very odd
-// 5. Make sure all debug states are properly displayed via pixels and document those
+// 5. it appears when saving changes via the web interface after initial config, the web server doesn't run.  this was initially due to WIFI also not running
+// but it still doesn't start the server even when it's supposed to.
 
 RTC_DS3231 rtc;
 #define CLOCK_INTERRUPT_PIN 2
@@ -26,7 +26,8 @@ WiFiUDP Udp;
 #define LED_PIN 4
 #define LED_COUNT 58
 const int pResistor = A0;
-int Reset_PIN = 6;
+int Reset = 6;
+int clearsettings = 5;
 int lightvalue;
 int pixels[58];
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
@@ -63,10 +64,25 @@ TimeChangeRule usCDT = {"CDT", Second, Sun, Mar, 2, -300};
 TimeChangeRule usCST = {"CST", First, Sun, Nov, 2, -360};
 TimeChangeRule usPDT = {"PDT", Second, Sun, Mar, 2, -420};
 TimeChangeRule usPST = {"PST", First, Sun, Nov, 2, -480};
+TimeChangeRule usAKDT = {"AKDT", Second, Sun, Mar, 2, -480};
+TimeChangeRule usAKST = {"AKST", First, Sun, Nov, 2, -540};
+TimeChangeRule usHST = {"HST", Second, Sun, Mar, 2, -600};
+TimeChangeRule AST = {"AST", First, Sun, Nov, 2, -180};
+TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};  // Central European Summer Time
+TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};    // Central European Standard Time
+TimeChangeRule BST = {"BST", Last, Sun, Mar, 1, 60};     // British Summer Time
+TimeChangeRule GMT = {"GMT", Last, Sun, Oct, 2, 0};      // Standard Time
+Timezone UK(BST, GMT);
+Timezone CE(CEST, CET);
+
 Timezone usET(usEDT, usEST);
 Timezone usPT(usPDT, usPST);
 Timezone usCT(usCDT, usCST);
 Timezone usMT(usMDT, usMST);
+Timezone usAZ(usMST);
+Timezone usHI(usHST);
+Timezone usAK(usAKDT, usAKST);
+Timezone AAST(AST);
 
 void setup() {
     Serial.begin(9600);
@@ -75,9 +91,12 @@ void setup() {
     strip.show();   // Turn OFF all pixels ASAP
     strip.clear();
     strip.setBrightness(150);
-    digitalWrite(Reset_PIN, HIGH);
+    pinMode(clearsettings, INPUT);
+    digitalWrite(clearsettings, HIGH);
+
+    digitalWrite(Reset, HIGH);
     delay(200);
-    pinMode(Reset_PIN, OUTPUT);
+    pinMode(Reset, OUTPUT);
     if (owner.valid == false) {  // we get here when there's no saved data.  basically initial setup
         status = WiFi.beginAP(ssid);
         if (status != WL_AP_LISTENING) {  // WAP couldn't start.  Top row pinkish
@@ -101,6 +120,8 @@ void setup() {
         server.begin();
         printWiFiStatus();
         Serial.println("Access Point Web Server");
+        Serial.print("connection status: ");
+        Serial.println(server.status());
         if (WiFi.status() == WL_NO_MODULE) {
             Serial.println("Communication with WiFi module failed!");
             // Failure of Wifi Module.  all top rows are red
@@ -327,6 +348,13 @@ void SetTime() {
     char mEST[4];
     char mMST[4];
     char mCST[4];
+    char mHST[4];
+    char mCET[4];
+    char mGMT[4];
+    char mAKDT[4];
+    char mAZDT[4];
+    char mAST[4];
+
     TimeChangeRule *tcr;
     char PSTHour[3];
     char PSTMin[3];
@@ -372,6 +400,66 @@ void SetTime() {
         sprintf(PSTMin, "%.2d", minute(tMST));
         sprintf(PSTSec, "%.2d", second(tMST));
     }
+    if ((String)owner.timezone == "GMT") {
+        Serial.println("GMT Time Zone...");
+        time_t tGMT = UK.toLocal(alarmepoch, &tcr);
+        strcpy(mGMT, monthShortStr(month(tGMT)));
+        sprintf(bufPST, "%.2d:%.2d:%.2d %s %.2d %s %d %s", hour(tGMT), minute(tGMT), second(tGMT), dayShortStr(weekday(tGMT)), day(tGMT), mGMT, year(tGMT), tcr->abbrev);
+        Serial.println(bufPST);
+        sprintf(PSTHour, "%.2d", hour(tGMT));
+        sprintf(PSTMin, "%.2d", minute(tGMT));
+        sprintf(PSTSec, "%.2d", second(tGMT));
+    }
+    if ((String)owner.timezone == "CET") {
+        Serial.println("CET Time Zone...");
+        time_t tCET = CE.toLocal(alarmepoch, &tcr);
+        strcpy(mCET, monthShortStr(month(tCET)));
+        sprintf(bufPST, "%.2d:%.2d:%.2d %s %.2d %s %d %s", hour(tCET), minute(tCET), second(tCET), dayShortStr(weekday(tCET)), day(tCET), mCET, year(tCET), tcr->abbrev);
+        Serial.println(bufPST);
+        sprintf(PSTHour, "%.2d", hour(tCET));
+        sprintf(PSTMin, "%.2d", minute(tCET));
+        sprintf(PSTSec, "%.2d", second(tCET));
+    }
+    if ((String)owner.timezone == "AST") {
+        Serial.println("AST Time Zone...");
+        time_t tAST = AAST.toLocal(alarmepoch, &tcr);
+        strcpy(mAST, monthShortStr(month(tAST)));
+        sprintf(bufPST, "%.2d:%.2d:%.2d %s %.2d %s %d %s", hour(tAST), minute(tAST), second(tAST), dayShortStr(weekday(tAST)), day(tAST), mAST, year(tAST), tcr->abbrev);
+        Serial.println(bufPST);
+        sprintf(PSTHour, "%.2d", hour(tAST));
+        sprintf(PSTMin, "%.2d", minute(tAST));
+        sprintf(PSTSec, "%.2d", second(tAST));
+    }
+    if ((String)owner.timezone == "ZST") {
+        Serial.println("AZST Time Zone...");
+        time_t tAZST = usAZ.toLocal(alarmepoch, &tcr);
+        strcpy(mAZDT, monthShortStr(month(tAZST)));
+        sprintf(bufPST, "%.2d:%.2d:%.2d %s %.2d %s %d %s", hour(tAZST), minute(tAZST), second(tAZST), dayShortStr(weekday(tAZST)), day(tAZST), mAZDT, year(tAZST), tcr->abbrev);
+        Serial.println(bufPST);
+        sprintf(PSTHour, "%.2d", hour(tAZST));
+        sprintf(PSTMin, "%.2d", minute(tAZST));
+        sprintf(PSTSec, "%.2d", second(tAZST));
+    }
+    if ((String)owner.timezone == "KST") {
+        Serial.println("AKST Time Zone...");
+        time_t tAKDT = usAK.toLocal(alarmepoch, &tcr);
+        strcpy(mAKDT, monthShortStr(month(tAKDT)));
+        sprintf(bufPST, "%.2d:%.2d:%.2d %s %.2d %s %d %s", hour(tAKDT), minute(tAKDT), second(tAKDT), dayShortStr(weekday(tAKDT)), day(tAKDT), mAKDT, year(tAKDT), tcr->abbrev);
+        Serial.println(bufPST);
+        sprintf(PSTHour, "%.2d", hour(tAKDT));
+        sprintf(PSTMin, "%.2d", minute(tAKDT));
+        sprintf(PSTSec, "%.2d", second(tAKDT));
+    }
+    if ((String)owner.timezone == "HST") {
+        Serial.println("HST Time Zone...");
+        time_t tHST = usHI.toLocal(alarmepoch, &tcr);
+        strcpy(mHST, monthShortStr(month(tHST)));
+        sprintf(bufPST, "%.2d:%.2d:%.2d %s %.2d %s %d %s", hour(tHST), minute(tHST), second(tHST), dayShortStr(weekday(tHST)), day(tHST), mHST, year(tHST), tcr->abbrev);
+        Serial.println(bufPST);
+        sprintf(PSTHour, "%.2d", hour(tHST));
+        sprintf(PSTMin, "%.2d", minute(tHST));
+        sprintf(PSTSec, "%.2d", second(tHST));
+    }
     // There may be a better way to do all this, but I don't know what it is.  but since we're driving the digits in different colours, I figured we needed
     // to drive the digits entirely independently.  so in order to do this, I need to break the time down into separate digits.
 
@@ -404,15 +492,15 @@ void SetTime() {
     // now that the time's been split up, we can output it all to the digits of the clock.
     // I'm doing each digit separately.  again as with before, there's probably way better ways of doing this.
 
-    if ((PSTHour1 == "0") && (PSTHour2 == "8") && (PSTMinute1 == "0") && (PSTMinute2 == "0")) {
-        // it's midnight, so re-run the time sync
-        GetTime();
-    }
-    if ((PSTHour1 == "1") && (PSTHour2 == "2") && (PSTMinute1 == "0") && (PSTMinute2 == "0")) {
-        // it's Noon, so re-run the time sync
+    // if ((PSTHour1 == "1") && (PSTHour2 == "2") && (PSTMinute1 == "5") && (PSTMinute2 == "8")) {
+    //     // it's midnight, so re-run the time sync
+    //     GetTime();
+    // }
+    // if ((PSTHour1 == "1") && (PSTHour2 == "2") && (PSTMinute1 == "0") && (PSTMinute2 == "0")) {
+    //     // it's Noon, so re-run the time sync
 
-        GetTime();
-    }
+    //     GetTime();
+    // }
     outputDigits(PSTMinute2.toInt(), PSTMinute1.toInt(), PSTHour2.toInt(), PSTHour1.toInt());
 }
 int numdigits(int i) {
@@ -592,24 +680,51 @@ uint32_t Wheel(byte WheelPos) {
         return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
     }
 }
+
+void clearsavedsettings() {
+}
+
 void loop() {
+    if (digitalRead(clearsettings) == LOW) {
+        Serial.println("buttonpressed");
+        //    clearsavedsettings();//
+        owner.valid = false;
+        my_flash_store.write(owner);
+        delay(2000);
+        digitalWrite(Reset, LOW);
+    }
     if (WifiSetup == 0) {
+        Serial.println("WifiSetup is 0");
         if (owner.valid == false) {
+            // Serial.println("For Some reason Wifi Setup is complete, but owner.valid is false");
         } else {
-            //  Serial.println("Dimmer Setting");
-            //  Serial.print ((String)owner.dimmer);
-            //  Serial.println("Brightness Setting");
-            //  Serial.print ((String)owner.brightness);
-            //  Serial.println("SSID Setting");
-            //  Serial.print ((String)owner.wifissid);
-            //  Serial.println("Timezone Setting");
-            //  Serial.print ((String)owner.timezone);
-            //  Serial.println("12 hr Setting");
-            //  Serial.print ((String)owner.twelvehr);
-            //  Serial.println("Temp Setting");
-            //  Serial.print ((String)owner.temp);
-            //  Serial.println("Temp Units Setting");
-            //  Serial.print ((String)owner.tempUnits);
+            if (server.status()) {
+            } else {
+                Serial.println("I Should be trying to start the server");
+                server.begin();
+            }
+            if (status != WL_CONNECTED) {
+                Serial.print("WIFI OFF: ");
+            } else {
+                Serial.print("WIFI ON: ");
+            }
+            Serial.print("Server status: ");
+            Serial.println(server.status());
+            //           Serial.println("owner.valid is not false");
+            //              Serial.print("Dimmer Setting=");
+            //              Serial.println ((String)owner.dimmer);
+            //              Serial.print("Brightness Setting=");
+            //              Serial.println ((String)owner.brightness);
+            //              Serial.print("SSID Setting=");
+            //              Serial.println ((String)owner.wifissid);
+            //              Serial.print("Timezone Setting=");
+            //              Serial.println ((String)owner.timezone);
+            //              Serial.print("12 hr Setting=");
+            //              Serial.println ((String)owner.twelvehr);
+            //              Serial.print("Temp Setting=");
+            //              Serial.println ((String)owner.temp);
+            //              Serial.print("Temp Units Setting=");
+            //              Serial.println ((String)owner.tempUnits);
             //
         }
         //   lightvalue = analogRead(pResistor);
@@ -1118,8 +1233,8 @@ void loop() {
                         client.print(" selected='selected' ");
                     }
                     client.print(">Pacific</option>");
-                    client.print("<option value='AKST' ");
-                    if ((String)owner.timezone == "AKST") {
+                    client.print("<option value='KST' ");
+                    if ((String)owner.timezone == "KST") {
                         client.print(" selected='selected' ");
                     }
                     client.print(">Alaska</option>");
@@ -1128,8 +1243,27 @@ void loop() {
                         client.print(" selected='selected' ");
                     }
                     client.print(">Hawaii</option>");
-
-                    client.print(twelvehour);
+                    client.print("<option value='ZST' ");
+                    if ((String)owner.timezone == "ZST") {
+                        client.print(" selected='selected' ");
+                    }
+                    client.print(">Arizona</option>");
+                    client.print("<option value='GMT' ");
+                    if ((String)owner.timezone == "GMT") {
+                        client.print(" selected='selected' ");
+                    }
+                    client.print(">GMT</option>");
+                    client.print("<option value='CET' ");
+                    if ((String)owner.timezone == "CET") {
+                        client.print(" selected='selected' ");
+                    }
+                    client.print(">Central European Time</option>");
+                    client.print("<option value='AST' ");
+                    if ((String)owner.timezone == "AST") {
+                        client.print(" selected='selected' ");
+                    }
+                    client.print(">Argentina Standard Time</option>");
+                    ////client.print(twelvehour);
 
                     client.print("</select>");
 
@@ -1385,6 +1519,7 @@ void loop() {
                         client.println("Content-Type: text/html");
                         client.println();
                         Serial.println("Starting Wifi Check");
+
                         String returnedip = validateSSID(owner);
                         if (returnedip == "0.0.0.0") {
                             Serial.println("Wifi Failed");
@@ -1411,6 +1546,7 @@ void loop() {
                             // startupPersonalWAP();
                             printWiFiStatus();
                         } else {  // connection successful.  Top and bottow rows blue.
+                            status = WiFi.begin(owner.wifissid, owner.Password);
                             strip.setPixelColor(50, strip.Color(0, 0, 255));
                             strip.setPixelColor(51, strip.Color(0, 0, 255));
                             strip.setPixelColor(37, strip.Color(0, 0, 255));
@@ -1429,8 +1565,13 @@ void loop() {
                             strip.setPixelColor(44, strip.Color(0, 0, 255));
                             strip.setPixelColor(45, strip.Color(0, 0, 255));
                             strip.show();
+                            // server.begin();
                             owner.valid = true;
                             my_flash_store.write(owner);
+
+                            delay(2000);
+                            digitalWrite(Reset, LOW);
+                            Serial.println("Restarting Server");
                             /// owner2 = my_flash_store.read();
                             // Serial.println((String)owner2.temp);
 
@@ -1447,6 +1588,8 @@ void loop() {
                     // Serial.println("b");
                     currentLineIsBlank = false;
                 }
+            } else {
+                Serial.println("Client Unavailable");
             }
         }
 
@@ -1457,6 +1600,8 @@ void loop() {
         client.stop();
 
         Serial.println("client disonnected");
+    } else {
+        // Serial.println ("Client is false");
     }
 }
 String validateSSID(Credentials owner) {
@@ -1474,6 +1619,10 @@ String validateSSID(Credentials owner) {
     Serial.print("signal strength (RSSI):");
     Serial.print(rssi);
     Serial.println(" dBm");
+    Serial.print("connection status: ");
+    Serial.println(server.status());
+    //      delay(2000);
+    //                            server.begin();
     return (LocalIP);
 }
 
@@ -1522,63 +1671,80 @@ void printWifiStatus() {
     Serial.print("signal strength (RSSI):");
     Serial.print(rssi);
     Serial.println(" dBm");
+
+    Serial.print("connection status: ");
+    Serial.println(server.status());
 }
 
-void GetTime() {
-    strip.setPixelColor(28, strip.Color(255, 0, 0));
-    strip.setPixelColor(29, strip.Color(255, 0, 0));
-    Serial.println('Updating Time');
-    strip.show();
-    if (WiFi.status() == WL_NO_MODULE) {
-        Serial.println("Communication with WiFi module failed!");
-        // don't continue
-        while (true)
-            ;
-    }
+// void GetTime() {
+//     strip.setPixelColor(28, strip.Color(255, 0, 0));
+//     strip.setPixelColor(29, strip.Color(255, 0, 0));
+//     Serial.println('Updating Time');
+//     strip.show();
+//     if (WiFi.status() == WL_NO_MODULE) {
+//         Serial.println("Communication with WiFi module failed!");
+//         // don't continue
+//         while (true)
+//             ;
+//     }
 
-    String fv = WiFi.firmwareVersion();
-    if (fv < WIFI_FIRMWARE_LATEST_VERSION) {
-        Serial.println("Please upgrade the firmware");
-    }
+//     String fv = WiFi.firmwareVersion();
+//     if (fv < WIFI_FIRMWARE_LATEST_VERSION) {
+//         Serial.println("Please upgrade the firmware");
+//     }
 
-    // attempt to connect to WiFi network:
-    while (status != WL_CONNECTED) {
-        strip.setPixelColor(28, strip.Color(255, 150, 0));
-        strip.setPixelColor(29, strip.Color(255, 150, 0));
+//     // attempt to connect to WiFi network:
+//     while (status != WL_CONNECTED) {
+//         strip.setPixelColor(28, strip.Color(255, 150, 0));
+//         strip.setPixelColor(29, strip.Color(255, 150, 0));
 
-        strip.show();
-        Serial.print("Attempting to connect to SSID: ");
-        Serial.println(ssid);
-        status = WiFi.begin(ssid, pass);
-        delay(10000);
-    }
+//         strip.show();
+//         Serial.print("Attempting to connect to SSID: ");
+//         Serial.println(ssid);
+//         status = WiFi.begin(ssid, pass);
+//         delay(10000);
+//     }
 
-    Serial.println("Connected to WiFi");
-    strip.setPixelColor(28, strip.Color(0, 255, 0));
-    strip.setPixelColor(29, strip.Color(0, 255, 0));
+//     Serial.println("Connected to WiFi");
+//     strip.setPixelColor(28, strip.Color(0, 255, 0));
+//     strip.setPixelColor(29, strip.Color(0, 255, 0));
 
-    strip.show();
-    printWifiStatus();
+//     strip.show();
+//     printWifiStatus();
 
-    Serial.println("\nStarting connection to server...");
-    Udp.begin(localPort);
-    sendNTPpacket(timeServer);  // send an NTP packet to a time server
-    delay(1000);
-    if (Udp.parsePacket()) {
-        Serial.println("packet received");
-        strip.setPixelColor(28, strip.Color(0, 0, 255));
-        strip.setPixelColor(29, strip.Color(0, 0, 255));
-        strip.show();
-        Udp.read(packetBuffer, NTP_PACKET_SIZE);  // read the packet into the buffer
-        unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
-        unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
-        unsigned long secsSince1900 = highWord << 16 | lowWord;
-        const unsigned long seventyYears = 2208988800UL;
-        unsigned long epoch = secsSince1900 - seventyYears;
-        //   rtc.setEpoch(epoch + 1);
-    }
-}
-
+//     Serial.println("\nStarting connection to server...");
+//     Udp.begin(localPort);
+//     sendNTPpacket(timeServer);  // send an NTP packet to a time server
+//     delay(3000);
+//     if (Udp.parsePacket()) {
+//         Serial.println("packet received");
+//         strip.setPixelColor(28, strip.Color(0, 0, 255));
+//         strip.setPixelColor(29, strip.Color(0, 0, 255));
+//         strip.show();
+//         // We've received a packet, read the data from it
+//         Udp.read(packetBuffer, NTP_PACKET_SIZE);  // read the packet into the buffer
+//         unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
+//         unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
+//         unsigned long secsSince1900 = highWord << 16 | lowWord;
+//         const unsigned long seventyYears = 2208988800UL;
+//         unsigned long epoch = secsSince1900 - seventyYears;
+//         //        rtc.begin();  // initialize RTC
+//         //        rtc.disable32K();
+//         rtc.adjust(DateTime(epoch + 1));
+//         //        rtc.clearAlarm(1);
+//         //        rtc.disable32K();
+//         //        pinMode(CLOCK_INTERRUPT_PIN, INPUT_PULLUP);
+//         //        attachInterrupt(digitalPinToInterrupt(CLOCK_INTERRUPT_PIN), alarm, FALLING);
+//         //        rtc.clearAlarm(1);
+//         //        rtc.clearAlarm(2);
+//         //        rtc.writeSqwPinMode(DS3231_OFF);
+//         //        rtc.setAlarm2(rtc.now(), DS3231_A2_PerMinute);
+//         //        rtc.setAlarm1(DateTime(0, 0, 0, 0, 0, 55), DS3231_A1_Second);
+//         SetTime();
+//     } else {
+//         Serial.println("Couldn't update the time for some reason.  No packet Recieved from NTP server");
+//     }
+// }
 void reboot() {
     //  wdt_disable();
     //  wdt_enable(WDTO_15MS);
