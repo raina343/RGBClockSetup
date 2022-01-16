@@ -26,6 +26,7 @@ WiFiUDP Udp;
 #define LED_PIN 4
 #define LED_COUNT 58
 const int pResistor = A0;
+int checktime = 0;
 int Reset = 6;
 int clearsettings = 5;
 int lightvalue;
@@ -243,62 +244,10 @@ void setup() {
             strip.show();
             printWifiStatus();
             Serial.println("\nStarting connection to server (first run)...");
-            Udp.begin(localPort);
-            sendNTPpacket(timeServer);  // send an NTP packet to a time server
-            delay(3000);
-            if (Udp.parsePacket()) {
-                Serial.println("packet received");
-                strip.setPixelColor(28, strip.Color(0, 0, 255));
-                strip.setPixelColor(29, strip.Color(0, 0, 255));
-                strip.show();
-                // We've received a packet, read the data from it
-                Udp.read(packetBuffer, NTP_PACKET_SIZE);  // read the packet into the buffer
-                unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
-                unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
-                unsigned long secsSince1900 = highWord << 16 | lowWord;
-                const unsigned long seventyYears = 2208988800UL;
-                unsigned long epoch = secsSince1900 - seventyYears;
-                rtc.begin();  // initialize RTC
-                rtc.disable32K();
-                rtc.adjust(DateTime(epoch + 1));
-                rtc.clearAlarm(1);
-                rtc.disable32K();
-                pinMode(CLOCK_INTERRUPT_PIN, INPUT_PULLUP);
-                attachInterrupt(digitalPinToInterrupt(CLOCK_INTERRUPT_PIN), alarm, FALLING);
-                rtc.clearAlarm(1);
-                rtc.clearAlarm(2);
-                rtc.writeSqwPinMode(DS3231_OFF);
-                rtc.setAlarm2(rtc.now(), DS3231_A2_PerMinute);
-                rtc.setAlarm1(DateTime(0, 0, 0, 0, 0, 55), DS3231_A1_Second);
-                SetTime();
-            } else {
-                strip.setPixelColor(1, strip.Color(150, 0, 0));
-                strip.setPixelColor(0, strip.Color(150, 0, 0));
-                strip.setPixelColor(14, strip.Color(150, 0, 0));
-                strip.setPixelColor(15, strip.Color(150, 0, 0));
-                strip.setPixelColor(30, strip.Color(150, 0, 0));
-                strip.setPixelColor(31, strip.Color(150, 0, 0));
-                strip.setPixelColor(44, strip.Color(150, 0, 0));
-                strip.setPixelColor(45, strip.Color(150, 0, 0));
-                strip.setPixelColor(10, strip.Color(150, 0, 0));
-                strip.setPixelColor(11, strip.Color(150, 0, 0));
-                strip.setPixelColor(24, strip.Color(150, 0, 0));
-                strip.setPixelColor(25, strip.Color(150, 0, 0));
-                strip.setPixelColor(40, strip.Color(150, 0, 0));
-                strip.setPixelColor(41, strip.Color(150, 0, 0));
-                strip.setPixelColor(54, strip.Color(150, 0, 0));
-                strip.setPixelColor(55, strip.Color(150, 0, 0));
-                strip.setPixelColor(6, strip.Color(150, 0, 0));
-                strip.setPixelColor(7, strip.Color(150, 0, 0));
-                strip.setPixelColor(20, strip.Color(150, 0, 0));
-                strip.setPixelColor(21, strip.Color(150, 0, 0));
-                strip.setPixelColor(36, strip.Color(150, 0, 0));
-                strip.setPixelColor(37, strip.Color(150, 0, 0));
-                strip.setPixelColor(50, strip.Color(150, 0, 0));
-                strip.setPixelColor(51, strip.Color(150, 0, 0));
-                strip.show();
-                delay(10000);
-            }
+            //            Udp.begin(localPort);
+            //            sendNTPpacket(timeServer);  // send an NTP packet to a time server
+            //            delay(3000);
+            GetTime();
         }
     }
 }
@@ -360,7 +309,7 @@ void SetTime() {
     char PSTMin[3];
     char PSTSec[3];
     if ((String)owner.timezone == "PST") {
-        Serial.println("PST Time Zone...");
+        // Serial.println("PST Time Zone...");
         time_t tPST = usPT.toLocal(alarmepoch, &tcr);
         strcpy(mPST, monthShortStr(month(tPST)));
         sprintf(bufPST, "%.2d:%.2d:%.2d %s %.2d %s %d %s", hour(tPST), minute(tPST), second(tPST), dayShortStr(weekday(tPST)), day(tPST), mPST, year(tPST), tcr->abbrev);
@@ -492,10 +441,10 @@ void SetTime() {
     // now that the time's been split up, we can output it all to the digits of the clock.
     // I'm doing each digit separately.  again as with before, there's probably way better ways of doing this.
 
-    // if ((PSTHour1 == "1") && (PSTHour2 == "2") && (PSTMinute1 == "5") && (PSTMinute2 == "8")) {
-    //     // it's midnight, so re-run the time sync
-    //     GetTime();
-    // }
+    if ((PSTHour1 == "1") && (PSTHour2 == "2") && (PSTMinute1 == "0") && (PSTMinute2 == "0")) {
+        // it's midnight, so re-run the time sync
+        checktime = 1;
+    }
     // if ((PSTHour1 == "1") && (PSTHour2 == "2") && (PSTMinute1 == "0") && (PSTMinute2 == "0")) {
     //     // it's Noon, so re-run the time sync
 
@@ -694,7 +643,7 @@ void loop() {
         digitalWrite(Reset, LOW);
     }
     if (WifiSetup == 0) {
-        Serial.println("WifiSetup is 0");
+        // Serial.println("WifiSetup is 0");
         if (owner.valid == false) {
             // Serial.println("For Some reason Wifi Setup is complete, but owner.valid is false");
         } else {
@@ -703,13 +652,13 @@ void loop() {
                 Serial.println("I Should be trying to start the server");
                 server.begin();
             }
-            if (status != WL_CONNECTED) {
-                Serial.print("WIFI OFF: ");
-            } else {
-                Serial.print("WIFI ON: ");
-            }
-            Serial.print("Server status: ");
-            Serial.println(server.status());
+            // if (status != WL_CONNECTED) {
+            //     Serial.print("WIFI OFF: ");
+            // } else {
+            //     Serial.print("WIFI ON: ");
+            // }
+            //      Serial.print("Server status: ");
+            //      Serial.println(server.status());
             //           Serial.println("owner.valid is not false");
             //              Serial.print("Dimmer Setting=");
             //              Serial.println ((String)owner.dimmer);
@@ -740,6 +689,9 @@ void loop() {
             }
             strip.show();
             delay(15);
+        }
+        if (checktime == 1) {
+            GetTime();
         }
         if ((String)owner.dimmer == "of") {
             String BrightnessLevel = (String)owner.brightness;
@@ -1675,7 +1627,72 @@ void printWifiStatus() {
     Serial.print("connection status: ");
     Serial.println(server.status());
 }
+void GetTime() {
+    Udp.begin(localPort);
+    sendNTPpacket(timeServer);  // send an NTP packet to a time server
+    delay(3000);
+    if (Udp.parsePacket()) {
+        Serial.println("packet received");
+        //     delay(3000);
+        strip.setPixelColor(28, strip.Color(0, 0, 255));
+        strip.setPixelColor(29, strip.Color(0, 0, 255));
+        strip.show();
 
+        // We've received a packet, read the data from it
+        Udp.read(packetBuffer, NTP_PACKET_SIZE);  // read the packet into the buffer
+        delay(1000);
+        unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
+        unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
+        unsigned long secsSince1900 = highWord << 16 | lowWord;
+        const unsigned long seventyYears = 2208988800UL;
+        unsigned long epoch = secsSince1900 - seventyYears;
+        rtc.begin();  // initialize RTC
+        rtc.disable32K();
+        rtc.adjust(DateTime(epoch + 4));
+        rtc.clearAlarm(1);
+        rtc.disable32K();
+        pinMode(CLOCK_INTERRUPT_PIN, INPUT_PULLUP);
+        attachInterrupt(digitalPinToInterrupt(CLOCK_INTERRUPT_PIN), alarm, FALLING);
+        rtc.clearAlarm(1);
+        rtc.clearAlarm(2);
+        rtc.writeSqwPinMode(DS3231_OFF);
+        rtc.setAlarm2(rtc.now(), DS3231_A2_PerMinute);
+        rtc.setAlarm1(DateTime(0, 0, 0, 0, 0, 55), DS3231_A1_Second);
+
+        if (checktime == 1) {
+            checktime = 0;
+        } else {
+            SetTime();
+        }
+    } else {
+        strip.setPixelColor(1, strip.Color(150, 0, 0));
+        strip.setPixelColor(0, strip.Color(150, 0, 0));
+        strip.setPixelColor(14, strip.Color(150, 0, 0));
+        strip.setPixelColor(15, strip.Color(150, 0, 0));
+        strip.setPixelColor(30, strip.Color(150, 0, 0));
+        strip.setPixelColor(31, strip.Color(150, 0, 0));
+        strip.setPixelColor(44, strip.Color(150, 0, 0));
+        strip.setPixelColor(45, strip.Color(150, 0, 0));
+        strip.setPixelColor(10, strip.Color(150, 0, 0));
+        strip.setPixelColor(11, strip.Color(150, 0, 0));
+        strip.setPixelColor(24, strip.Color(150, 0, 0));
+        strip.setPixelColor(25, strip.Color(150, 0, 0));
+        strip.setPixelColor(40, strip.Color(150, 0, 0));
+        strip.setPixelColor(41, strip.Color(150, 0, 0));
+        strip.setPixelColor(54, strip.Color(150, 0, 0));
+        strip.setPixelColor(55, strip.Color(150, 0, 0));
+        strip.setPixelColor(6, strip.Color(150, 0, 0));
+        strip.setPixelColor(7, strip.Color(150, 0, 0));
+        strip.setPixelColor(20, strip.Color(150, 0, 0));
+        strip.setPixelColor(21, strip.Color(150, 0, 0));
+        strip.setPixelColor(36, strip.Color(150, 0, 0));
+        strip.setPixelColor(37, strip.Color(150, 0, 0));
+        strip.setPixelColor(50, strip.Color(150, 0, 0));
+        strip.setPixelColor(51, strip.Color(150, 0, 0));
+        strip.show();
+        delay(10000);
+    }
+}
 // void GetTime() {
 //     strip.setPixelColor(28, strip.Color(255, 0, 0));
 //     strip.setPixelColor(29, strip.Color(255, 0, 0));
