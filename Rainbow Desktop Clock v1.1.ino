@@ -28,7 +28,7 @@ WiFiUDP Udp;
 const int pResistor = A0;
 int checktime = 0;
 int Reset = 6;
-int clearsettings = 5;
+int clearsettings = 3;
 int lightvalue;
 int pixels[58];
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
@@ -635,7 +635,7 @@ void clearsavedsettings() {
 
 void loop() {
     if (digitalRead(clearsettings) == LOW) {
-        Serial.println("buttonpressed");
+        //    Serial.println("buttonpressed");
         //    clearsavedsettings();//
         owner.valid = false;
         my_flash_store.write(owner);
@@ -649,7 +649,7 @@ void loop() {
         } else {
             if (server.status()) {
             } else {
-                Serial.println("I Should be trying to start the server");
+                //        Serial.println("I Should be trying to start the server");
                 server.begin();
             }
             // if (status != WL_CONNECTED) {
@@ -1693,75 +1693,7 @@ void GetTime() {
         delay(10000);
     }
 }
-// void GetTime() {
-//     strip.setPixelColor(28, strip.Color(255, 0, 0));
-//     strip.setPixelColor(29, strip.Color(255, 0, 0));
-//     Serial.println('Updating Time');
-//     strip.show();
-//     if (WiFi.status() == WL_NO_MODULE) {
-//         Serial.println("Communication with WiFi module failed!");
-//         // don't continue
-//         while (true)
-//             ;
-//     }
 
-//     String fv = WiFi.firmwareVersion();
-//     if (fv < WIFI_FIRMWARE_LATEST_VERSION) {
-//         Serial.println("Please upgrade the firmware");
-//     }
-
-//     // attempt to connect to WiFi network:
-//     while (status != WL_CONNECTED) {
-//         strip.setPixelColor(28, strip.Color(255, 150, 0));
-//         strip.setPixelColor(29, strip.Color(255, 150, 0));
-
-//         strip.show();
-//         Serial.print("Attempting to connect to SSID: ");
-//         Serial.println(ssid);
-//         status = WiFi.begin(ssid, pass);
-//         delay(10000);
-//     }
-
-//     Serial.println("Connected to WiFi");
-//     strip.setPixelColor(28, strip.Color(0, 255, 0));
-//     strip.setPixelColor(29, strip.Color(0, 255, 0));
-
-//     strip.show();
-//     printWifiStatus();
-
-//     Serial.println("\nStarting connection to server...");
-//     Udp.begin(localPort);
-//     sendNTPpacket(timeServer);  // send an NTP packet to a time server
-//     delay(3000);
-//     if (Udp.parsePacket()) {
-//         Serial.println("packet received");
-//         strip.setPixelColor(28, strip.Color(0, 0, 255));
-//         strip.setPixelColor(29, strip.Color(0, 0, 255));
-//         strip.show();
-//         // We've received a packet, read the data from it
-//         Udp.read(packetBuffer, NTP_PACKET_SIZE);  // read the packet into the buffer
-//         unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
-//         unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
-//         unsigned long secsSince1900 = highWord << 16 | lowWord;
-//         const unsigned long seventyYears = 2208988800UL;
-//         unsigned long epoch = secsSince1900 - seventyYears;
-//         //        rtc.begin();  // initialize RTC
-//         //        rtc.disable32K();
-//         rtc.adjust(DateTime(epoch + 1));
-//         //        rtc.clearAlarm(1);
-//         //        rtc.disable32K();
-//         //        pinMode(CLOCK_INTERRUPT_PIN, INPUT_PULLUP);
-//         //        attachInterrupt(digitalPinToInterrupt(CLOCK_INTERRUPT_PIN), alarm, FALLING);
-//         //        rtc.clearAlarm(1);
-//         //        rtc.clearAlarm(2);
-//         //        rtc.writeSqwPinMode(DS3231_OFF);
-//         //        rtc.setAlarm2(rtc.now(), DS3231_A2_PerMinute);
-//         //        rtc.setAlarm1(DateTime(0, 0, 0, 0, 0, 55), DS3231_A1_Second);
-//         SetTime();
-//     } else {
-//         Serial.println("Couldn't update the time for some reason.  No packet Recieved from NTP server");
-//     }
-// }
 void reboot() {
     //  wdt_disable();
     //  wdt_enable(WDTO_15MS);
