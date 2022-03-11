@@ -414,8 +414,12 @@ void SetTime() {
 
     String PSTHours = String(PSTHour);
     if ((String)owner.twelvehr == "on") {
-        Serial.println("12 hour Time!!!");
-        if ((int)PSTHour > 12) {
+        //  Serial.println("12 hour Time!!!");
+        // Serial.println((int)PSTHour);
+        String fooA = (String)PSTHour;
+        int barA = fooA.toInt();
+        if ((int)barA > 12) {
+            //  Serial.println ("I shouldnt be here for 12 hr time");
             String foo = (String)PSTHour;
             int bar = foo.toInt();
             int www = bar - 12;
@@ -428,14 +432,31 @@ void SetTime() {
                 String bar2 = (String)www;
                 bar2.toCharArray(PSTHour, 3);
             }
+        } else {
+            //  Serial.println ("I should be here for 12 hr time");
+            String foo = (String)PSTHour;
+            int bar = foo.toInt();
+            int www = bar;
+            if (www < 10) {
+                String foo2 = (String)www;
+                String prefix = "0";
+                String bar2 = prefix + foo2;
+                bar2.toCharArray(PSTHour, 3);
+            } else {
+                String bar2 = (String)www;
+                bar2.toCharArray(PSTHour, 3);
+            }
         }
     }
+    Serial.println((String)PSTHour);
     String PSTMins = String(PSTMin);
     String PSTSeconds = String(PSTSec);
     String PSTMinute1 = String(PSTMin).substring(0, 1);
     String PSTMinute2 = String(PSTMin).substring(1);
     String PSTHour1 = String(PSTHour).substring(0, 1);
     String PSTHour2 = String(PSTHour).substring(1);
+    Serial.println((String)PSTHour1);
+    Serial.println((String)PSTHour2);
     rtc.clearAlarm(1);
     rtc.clearAlarm(2);
     // now that the time's been split up, we can output it all to the digits of the clock.
@@ -1410,14 +1431,14 @@ void loop() {
                 if (c == '\n') {
                     //  Serial.println(readString);
                     if (readString.indexOf("ssid") > 0) {
-                        strip.setPixelColor(6, strip.Color(75, 150, 0));
-                        strip.setPixelColor(7, strip.Color(75, 150, 0));
-                        strip.setPixelColor(20, strip.Color(75, 150, 0));
-                        strip.setPixelColor(21, strip.Color(75, 150, 0));
-                        strip.setPixelColor(36, strip.Color(75, 150, 0));
-                        strip.setPixelColor(37, strip.Color(75, 150, 0));
-                        strip.setPixelColor(50, strip.Color(75, 150, 0));
-                        strip.setPixelColor(51, strip.Color(75, 150, 0));
+                        strip.setPixelColor(6, strip.Color(150, 0, 150));
+                        strip.setPixelColor(7, strip.Color(150, 0, 150));
+                        strip.setPixelColor(20, strip.Color(150, 0, 150));
+                        strip.setPixelColor(21, strip.Color(150, 0, 150));
+                        strip.setPixelColor(36, strip.Color(150, 0, 150));
+                        strip.setPixelColor(37, strip.Color(150, 0, 150));
+                        strip.setPixelColor(50, strip.Color(150, 0, 150));
+                        strip.setPixelColor(51, strip.Color(150, 0, 150));
                         strip.show();
                         // Serial.println(readString);
                         char Buf[250];
