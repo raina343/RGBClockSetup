@@ -15,7 +15,7 @@ IPAddress timeServer(129, 6, 15, 28);
 const int NTP_PACKET_SIZE = 48;      // NTP timestamp is in the first 48 bytes of the message
 byte packetBuffer[NTP_PACKET_SIZE];  // buffer to hold incoming and outgoing packets
 WiFiUDP Udp;
-#define LED_PIN 6
+#define LED_PIN 4
 #define LED_COUNT 58
 const int pResistor = A0;
 int Reset = 6;
@@ -23,6 +23,7 @@ int clearsettings = 3;
 int lightvalue;
 int pixels[58];
 String WIFiWAPList;
+int checktime = 0;
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 // int Sized[] = {18, 6, 15, 15, 12, 15, 18, 9, 21, 18};
 // int Sizedoff[] = {3, 15, 6, 6, 9, 6, 3, 12, 0, 3};
@@ -692,7 +693,7 @@ void loop() {
       strip.show();
     } else {
       lightvalue = analogRead(pResistor);
-      //      Serial.println(lightvalue);
+           Serial.println(lightvalue);
       if (lightvalue > 550) {
         strip.setBrightness(255);
         strip.show();
